@@ -408,7 +408,7 @@ BOOL CFlowNavigatorDlg::OpenFactoryAndCamera()
 
 		//设置初始帧率值，否则默认22帧，8台同时开，卡死
 	    J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[j],"AcquisitionFrameRate",&hNode);
-		J_Node_SetValueDouble(hNode,TRUE,8.0);
+		J_Node_SetValueDouble(hNode,TRUE,10.0);
 		
 
         
