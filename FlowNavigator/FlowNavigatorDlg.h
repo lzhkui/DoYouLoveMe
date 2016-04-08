@@ -33,6 +33,7 @@ class CFlowNavigatorDlg : public CDialog
 // 构造
 public:
 	CFlowNavigatorDlg(CWnd* pParent = NULL);	// 标准构造函数
+	~CFlowNavigatorDlg();
 // 对话框数据
 	enum { IDD = IDD_FLOWNAVIGATOR_DIALOG };
 

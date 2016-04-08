@@ -164,6 +164,11 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 
 }
 
+CFlowNavigatorDlg::~CFlowNavigatorDlg()
+{
+	delete bmpinfo;
+}
+
 void CFlowNavigatorDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
