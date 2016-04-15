@@ -355,6 +355,14 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\AdjustImage.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\AdjustThreadFunc.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CSetSampleDlg.cpp"
 				>
 			</File>
@@ -372,6 +380,10 @@
 			</File>
 			<File
 				RelativePath=".\SetValue.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ShowView.cpp"
 				>
 			</File>
 			<File
@@ -411,6 +423,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\test.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\WaitLoading.cpp"
 				>
 			</File>
@@ -420,6 +436,14 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\AdjustImage.h"
+				>
+			</File>
+			<File
+				RelativePath=".\AdjustThreadFunc.h"
+				>
+			</File>
 			<File
 				RelativePath=".\CSetSampleDlg.h"
 				>
@@ -445,11 +469,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ShowView.h"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.h"
 				>
 			</File>
 			<File
 				RelativePath=".\targetver.h"
+				>
+			</File>
+			<File
+				RelativePath=".\test.h"
 				>
 			</File>
 			<File

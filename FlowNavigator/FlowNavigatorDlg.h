@@ -10,6 +10,10 @@
 #include "ImageInfo.h"
 #include <afxmt.h>// CCriticalSection
 #include "CSetSampleDlg.h"
+#include "test.h"
+#include "AdjustImage.h"
+#include "ShowView.h"
+#include "AdjustThreadFunc.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -39,6 +43,10 @@ public:
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
+
+	//图像校正线程传入参数
+	pAdajustCLs m_pAdjustCls;
+	unsigned char *relateArr;
 
 public:
 	FACTORY_HANDLE  m_hFactory;                         // Factory Handle
@@ -89,11 +97,14 @@ protected:
 	int   m_CameraCount;//实际相机个数
 	BOOL bt_on;//true:打开状态 让菜单按钮变灰
 
+
 private:
-	unsigned int test_count_getImage;
+	unsigned int test_count_getImage[8];
 	
 	CSetValue *setDlg;//参数设置对话框
 	ImageInfo myImageInfo;
+	AdjustImage *adjustImage_C[MAX_CAMERAS];
+
 	pImageNode head[MAX_CAMERAS];
 	pImageNode pImage[MAX_CAMERAS];
 
@@ -134,4 +145,7 @@ public:
 // 			const char* numCam,
 // 			const char* path = NULL, const char* fileName = NULL);
 
+	afx_msg void OnAdjust();
+	afx_msg void OnLink();
+	void EndControl(void);
 };

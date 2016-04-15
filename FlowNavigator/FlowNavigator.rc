@@ -279,7 +279,11 @@ BEGIN
             MENUITEM "8列*1行",                       ID_8Col1Line
         END
     END
-    MENUITEM "实时计算",                        ID_32789
+    POPUP "实时计算"
+    BEGIN
+        MENUITEM "图像校正",                        ID_Adjust
+        MENUITEM "图像拼接",                        ID_Link
+    END
     MENUITEM "工具",                          ID_32790
     MENUITEM "帮助",                          0
 END
