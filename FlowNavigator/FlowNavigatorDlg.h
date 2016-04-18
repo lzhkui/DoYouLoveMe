@@ -14,6 +14,7 @@
 #include "AdjustImage.h"
 #include "ShowView.h"
 #include "AdjustThreadFunc.h"
+#include "LinkImage.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -148,4 +149,5 @@ public:
 	afx_msg void OnAdjust();
 	afx_msg void OnLink();
 	void EndControl(void);
+	afx_msg void OnTest();
 };

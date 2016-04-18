@@ -379,6 +379,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\LinkImage.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\SetValue.cpp"
 				>
 			</File>
@@ -458,6 +462,10 @@
 			</File>
 			<File
 				RelativePath=".\ImageInfo.h"
+				>
+			</File>
+			<File
+				RelativePath=".\LinkImage.h"
 				>
 			</File>
 			<File

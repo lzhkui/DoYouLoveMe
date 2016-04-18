@@ -26,7 +26,6 @@
 #define IDC_PROGRESS1                   1013
 #define IDC_CANCEL                      1014
 #define IDC_SampleTIme                  1015
-#define IDC_BUTTON2                     1017
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -56,13 +55,15 @@
 #define ID_Adjust                       32797
 #define ID_Menu32798                    32798
 #define ID_Link                         32799
+#define ID_32800                        32800
+#define ID_Test                         32801
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
-#define _APS_NEXT_COMMAND_VALUE         32800
+#define _APS_NEXT_COMMAND_VALUE         32802
 #define _APS_NEXT_CONTROL_VALUE         1018
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

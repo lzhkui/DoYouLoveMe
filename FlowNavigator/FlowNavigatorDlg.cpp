@@ -196,6 +196,7 @@ BEGIN_MESSAGE_MAP(CFlowNavigatorDlg, CDialog)
 	ON_WM_CLOSE()
 	ON_COMMAND(ID_Adjust, &CFlowNavigatorDlg::OnAdjust)
 	ON_COMMAND(ID_Link, &CFlowNavigatorDlg::OnLink)
+	ON_COMMAND(ID_Test, &CFlowNavigatorDlg::OnTest)
 END_MESSAGE_MAP()
 
 
@@ -1651,13 +1652,25 @@ void CFlowNavigatorDlg::OnAdjust()
 	m_pAdjustCls->pWnd = this;
 	m_pAdjustCls->Count = m_CameraCount;
 
+	m_pAdjustCls->linkImage = new LinkImage();
+	m_pAdjustCls->pTwoImageInfo = (st_IMAGE_INFO *)malloc(sizeof(st_IMAGE_INFO));
+	m_pAdjustCls->pTwoImageInfo->pOutImage = NULL;
+
 	::AfxBeginThread(AdjustThreadFunc::AdjustIm,m_pAdjustCls,THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);	
 }
 
 void CFlowNavigatorDlg::OnLink()
 {
 	// TODO: 在此添加命令处理程序代码
-	mAdjust = FALSE;
+	//mAdjust = FALSE;
+	mLink = TRUE;
 }
 
 
+
+void CFlowNavigatorDlg::OnTest()
+{
+	// TODO: 在此添加命令处理程序代码
+	mLink = FALSE;
+	mAdjust = FALSE;
+}

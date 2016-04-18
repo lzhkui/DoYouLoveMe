@@ -283,6 +283,7 @@ BEGIN
     BEGIN
         MENUITEM "图像校正",                        ID_Adjust
         MENUITEM "图像拼接",                        ID_Link
+        MENUITEM "test",                        ID_Test
     END
     MENUITEM "工具",                          ID_32790
     MENUITEM "帮助",                          0
