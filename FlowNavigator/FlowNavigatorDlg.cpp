@@ -1039,6 +1039,29 @@ void CFlowNavigatorDlg::LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bm
 	//float end = clock();
 	//TRACE("flip time: %f\n",end-begin);   //5到7毫秒之间
 
+	/*
+	int SetDIBitsToDevice(HDC hdc,
+		int xDest, int Ydest,
+		DWORD dwWidth, DWORD dwHeight,
+		intXSrc, int Ysrc,
+		UINT uStartScan, UINT cScanLines,
+		CONST VOID *lpvBits, CONST BITMAPINFO *lpbmi, UINT fuColorUse);
+	hdc：设备环境句柄。
+	XDest：指定目标矩形左上角的X轴坐标，按逻辑单位表示坐标。
+	YDest：指字目标矩形左上角的Y轴坐标，按逻辑单位表示坐标。
+	dwWidth：指定DIB的宽度，按逻辑单位表示宽度。
+	dwHeight：指定DIB的高度，按逻辑单位表示高度。
+	XSrc：指定DIB位图左下角的X轴坐标，按逻辑单位表示坐标。
+	YSrc：指定DIB位图左下角的Y轴坐标，按逻辑单位表示坐标。
+	uStartScan：指定DIB中的起始扫描线。
+	cScanLInes：指定参数lpvBits指向的数组中包含的DIB扫描线数目。
+	lpvBits：指向存储DIB颜色数据的字节类型数组的指针。关于更多的信息，请参考下面的备注一节。
+	lpbmi：指向BITMAPINFO结构的指针，该结构包含有关DIB的信息。
+	fuColorUse：指向BITMAPINFO结构中的成员bmiColors是否包含明确的RGB值或对调色板进行索引的值。有关更多的信息，请参考下面的备注部分。
+	参数fuColorUse必须是下列值之一，这些值的含义如下：
+	DIB_PAL_COLORS：表示颜色表由16位的索引值数组组成，利用这些值可对当前选中的逻辑调色板进行索引。
+	DIB_RGB_COLORS：表示颜色表包含原义的RGB值。
+	*/
 	CBitmap bmp;
 	bmp.CreateCompatibleBitmap(pDC,bmpinfo->bmiHeader.biWidth,bmpinfo->bmiHeader.biHeight);
 	CBitmap* pOldBmp = MemDC.SelectObject(&bmp);
