@@ -15,6 +15,7 @@
 #include "ShowView.h"
 #include "AdjustThreadFunc.h"
 #include "LinkImage.h"
+#include   <afxpriv.h> //T2A()可能用到
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -48,6 +49,13 @@ public:
 	//图像校正线程传入参数
 	pAdajustCLs m_pAdjustCls;
 	unsigned char *relateArr;
+
+	ShowView *showView;//用于实时显示
+
+	//用于GDI+初始化函数
+private:
+	GdiplusStartupInput gdiplusStartupInput;
+	ULONG_PTR gdiplusToken;
 
 public:
 	FACTORY_HANDLE  m_hFactory;                         // Factory Handle

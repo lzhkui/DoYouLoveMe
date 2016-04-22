@@ -5,6 +5,7 @@
 #include "FlowNavigator.h"
 #include "FlowNavigatorDlg.h"
 
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -119,6 +120,10 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	Count=Count1=Count2=Count3=Count4=Count5=Count6=Count7=5;
 	RecvFrame=RecvFrame1=0;
 	m_pAdjustCls = (pAdajustCLs)malloc(sizeof(AdajustCLs));//校正线程传入参数
+	showView = new ShowView(this); 
+	
+	// Initialize GDI+
+	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
 	for (int i=0; i< MAX_CAMERAS; i++)
 	{
@@ -171,6 +176,17 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 CFlowNavigatorDlg::~CFlowNavigatorDlg()
 {
 	delete bmpinfo;
+	delete showView;
+	if (m_pAdjustCls != NULL)
+	{
+		free(m_pAdjustCls);
+		m_pAdjustCls = NULL;
+	}
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		free(head[i]);
+		head[i] = NULL;
+	}
 }
 
 void CFlowNavigatorDlg::DoDataExchange(CDataExchange* pDX)
@@ -685,22 +701,24 @@ int CFlowNavigatorDlg::SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO&
 			if(path == NULL)
 			{
 				//得到exe的完整路径，包括exe的文件名
-				GetModuleFileName(NULL,LPCH(str),MAX_PATH);
+				GetModuleFileName(NULL,LPWCH(str),MAX_PATH);
 				CString pathDir(str);
 				int pos = pathDir.ReverseFind('\\');
 				pathDir = pathDir.Left(pos);
 
 				CString strNumCam(numCam);
-				pathDir += "\\"+ strNumCam;
+				pathDir = pathDir + _T("\\")+ strNumCam;
 				if(!PathIsDirectory(pathDir))
 				{
 					::CreateDirectory(pathDir,NULL);
 				}
 
-				filePath.Format("%s\\%d.tiff",pathDir,Count);
-				filePath.Replace("\\","\\\\");
+				filePath.Format(_T("%s\\%d.tiff"),pathDir,Count);
+				filePath.Replace(_T("\\"),_T("\\\\"));
 
-				J_Image_SaveFileA(&m_CnvImageInfo, (LPCSTR)(filePath)); // Stores RGB image to a TIFF file.
+				//因为LPCSTR是ANSI标准下的，现在字符集是Unicode
+                USES_CONVERSION;
+				J_Image_SaveFileA(&m_CnvImageInfo, (LPCSTR)T2A(filePath)); // Stores RGB image to a TIFF file.
 			}
 			//J_Image_SaveFileA(&m_CnvImageInfo, (LPCSTR)"D:\\2.tiff"); // Stores RGB image to a TIFF file.
 		}
@@ -732,22 +750,22 @@ int CFlowNavigatorDlg::InsertHead(pImageNode pImage, J_tIMAGE_INFO* pAqImageInfo
 
 void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 {
+	float begin = clock();
+
 	RecvFrame++;
+	CRect rect;
+	GetClientRect(&rect);
 
 	if (mAdjust)
 	{ 
-		adjustG_cs[0].Lock();
 		if (!AdjustING)
 		{
 			adjustImage_C[0]->setImageInfo(pAqImageInfo);
 		}
-		adjustG_cs[0].Unlock();
 	} 
 	else 
 	{
 //End:
-		CRect rect;
-		GetClientRect(&rect);
 		if(CtrLine == 42)
 		{
 			LiveView_Cwj(pAqImageInfo,bmpinfo,0,0,rect.Width()/4,rect.Height()/2,HALFTONE);
@@ -758,7 +776,6 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 		}	
 		if(b_isContinuous)
 		{
-
 			if (Count > 0)
 			{
 				float begin = clock();
@@ -788,7 +805,32 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 	TRACE("相机0：%d,LostFrames=%d,CurruptedFrames=%d,RecvFrame=%d,iTimeStamp=%llu,iAwaitDelivery=%d\n",Count,iLostFrames,
 		iCurruptedFrames,RecvFrame,pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
 
+	Graphics g(this->GetDC()->GetSafeHdc());
+	// Set the text rendering for Cleartype
+	g.SetTextRenderingHint(TextRenderingHintClearTypeGridFit);
 
+	// Create a red Solid Brush Color(A,R,G,B)
+	SolidBrush brush(Color(255, 255, 0, 0));
+
+	// Create a font
+	FontFamily fontFamily(L"Arial");
+	Font font(&fontFamily, 10, FontStyleRegular, UnitPoint);
+
+
+	CClientDC clientDC(this);
+	CPoint point(0, 0);
+	clientDC.LPtoDP(&point);
+	PointF pointF(point.x,point.y);
+
+	//g.TranslateTransform(0,font.GetHeight(0.0f));/af/平移坐标系  
+
+
+	CString str;
+	str.Format(_T("接收%d 丢%lu"),RecvFrame,iLostFrames);
+	g.DrawString(str, -1, &font, pointF, &brush);
+	    
+	float end = clock();
+	TRACE("LiveView coast time = %f\n",end - begin);
 }
 void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 {
