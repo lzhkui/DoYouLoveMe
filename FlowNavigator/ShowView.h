@@ -20,7 +20,7 @@ typedef struct LiveView* pst_LiveView;
 /*绘制字体函数传入结构体*/
 struct DrawText
 {
-	Graphics graph;
+	Graphics* graph;
 	TextRenderingHint Mode;
 	BYTE a;
 	BYTE r;

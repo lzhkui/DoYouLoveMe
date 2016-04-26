@@ -2,6 +2,8 @@
 
 #include <Jai_Factory.h>
 #include "afxcmn.h"  //控件CSliderCtrl
+#include "BuildDir.h"
+using namespace BuildDir;
 
 // SetValue 对话框
 
@@ -24,10 +26,8 @@ class CSetValue : public CDialog
 	DECLARE_DYNAMIC(CSetValue)
 
 public:
-	CSetValue(CWnd* pParent = NULL);   // 标准构造函数
+	CSetValue(CWnd* pParent, CString curProPath);   // 标准构造函数
 	virtual ~CSetValue();
-
-	void Start();
 
 public:
 	CAM_HANDLE m_hCam[8];
@@ -43,20 +43,22 @@ protected:
 public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 
+	afx_msg void OnStnClickedMinexposure();
+	afx_msg void OnEnChangeCurexposure();
+	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnBnClickedSaveSetup();
+
+protected:
+	virtual void OnOK();
+	virtual void OnCancel();
+
+public:
 	CSliderCtrl mExpSliderCtrl;
 	int m_MinExposure;
 	int m_MaxExposure;
-	afx_msg void OnStnClickedMinexposure();
 	int m_CurExposure;
-	afx_msg void OnEnChangeCurexposure();
 	int m_CameraCount;
-protected:
-	virtual void OnOK();
-public:
-	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
-protected:
-	virtual void OnCancel();
-public:
+
 	int m_CurGain;
 	int m_MinGain;
 	int m_MaxGain;
@@ -66,10 +68,14 @@ public:
 	CSliderCtrl mGainSliderCtrl;
 	CSliderCtrl mFrameSliderCtrl;
 
+    CString m_CurrentProPath;
+
+	void Start();
 	void SetRangeMM(void);
 	int CSetValue::SetValueInt_CWJ(CAM_HANDLE hCam[], int8_t* sNodeName, int64_t Value, int m_CameraCount);
 	int SetFromEditToSlider(int m_CurrentValue, CSliderCtrl& mSlider, int Min, int Max);
 	int CSetValue::SetValueMM(CAM_HANDLE hCam[], int8_t* sNodeName,
 		CSliderCtrl& mSlider, int* Min, int* Max);
 	void setInitValueMM(CSliderCtrl& mSlider, int& mMin, int& mMax,int Min, int Max);
+	afx_msg void OnBnClickedLoadlastsetup();
 };

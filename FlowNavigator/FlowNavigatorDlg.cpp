@@ -5,10 +5,13 @@
 #include "FlowNavigator.h"
 #include "FlowNavigatorDlg.h"
 
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+#include "BuildDir.h"
+using namespace BuildDir;//建立项目目录
+
 
 //PathIsDirectory()
 #include "shlwapi.h"
@@ -25,8 +28,6 @@ BOOL b_isContinuous = FALSE;//true:连续模式 false:潮流
 
 CCriticalSection g_cs,g_cs1,g_cs2,g_cs3,
 g_cs4,g_cs5,g_cs6,g_cs7;
-
-CCriticalSection adjustG_cs[MAX_CAMERAS];
 
 CWaitLoading *dlgWait;//进度条等待对话框
 UINT CreateWaitDlg(LPVOID pParam);
@@ -121,7 +122,8 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	RecvFrame=RecvFrame1=0;
 	m_pAdjustCls = (pAdajustCLs)malloc(sizeof(AdajustCLs));//校正线程传入参数
 	showView = new ShowView(this); 
-	
+	m_CurrentProPath = DEFAULT_PATH;
+
 	// Initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
@@ -213,6 +215,7 @@ BEGIN_MESSAGE_MAP(CFlowNavigatorDlg, CDialog)
 	ON_COMMAND(ID_Adjust, &CFlowNavigatorDlg::OnAdjust)
 	ON_COMMAND(ID_Link, &CFlowNavigatorDlg::OnLink)
 	ON_COMMAND(ID_Test, &CFlowNavigatorDlg::OnTest)
+	ON_COMMAND(ID_CreateProj, &CFlowNavigatorDlg::OnCreateproj)
 END_MESSAGE_MAP()
 
 
@@ -675,7 +678,7 @@ int CFlowNavigatorDlg::SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO&
 	//EnterCriticalSection(&m_CriticalSection);
 
 	CString filePath;
-	char str[MAX_PATH];
+	TCHAR str[MAX_PATH];
 	//J_tIMAGE_INFO **ppAqImageInfo = new J_tIMAGE_INFO *[MAX_IMG_COUNT];
 	/*
 	for (int i = 0; i < Count; i++)
@@ -701,7 +704,7 @@ int CFlowNavigatorDlg::SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO&
 			if(path == NULL)
 			{
 				//得到exe的完整路径，包括exe的文件名
-				GetModuleFileName(NULL,LPWCH(str),MAX_PATH);
+				GetModuleFileName(NULL,str,MAX_PATH); //原来这里用 LPWCH(str) 结果路径是每个字符后加了个 0 ！！！
 				CString pathDir(str);
 				int pos = pathDir.ReverseFind('\\');
 				pathDir = pathDir.Left(pos);
@@ -805,49 +808,39 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 	TRACE("相机0：%d,LostFrames=%d,CurruptedFrames=%d,RecvFrame=%d,iTimeStamp=%llu,iAwaitDelivery=%d\n",Count,iLostFrames,
 		iCurruptedFrames,RecvFrame,pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
 
-	Graphics g(this->GetDC()->GetSafeHdc());
-	// Set the text rendering for Cleartype
-	g.SetTextRenderingHint(TextRenderingHintClearTypeGridFit);
+	//Graphics g(this->GetDC()->GetSafeHdc());
+	HDC hdc = this->GetDC()->GetSafeHdc();
+	st_DrawText pDrawText;
+	pDrawText.graph = ::new Graphics(hdc);
+	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
+	pDrawText.a = 255;
+	pDrawText.r = 255;
+	pDrawText.g = 0;
+	pDrawText.b = 0;
+	pDrawText.pWnd = this;
+	pDrawText.X = 0;
+	pDrawText.Y = 0;
+	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame,iLostFrames);
 
-	// Create a red Solid Brush Color(A,R,G,B)
-	SolidBrush brush(Color(255, 255, 0, 0));
+	showView->DrawText_k(&pDrawText);
 
-	// Create a font
-	FontFamily fontFamily(L"Arial");
-	Font font(&fontFamily, 10, FontStyleRegular, UnitPoint);
-
-
-	CClientDC clientDC(this);
-	CPoint point(0, 0);
-	clientDC.LPtoDP(&point);
-	PointF pointF(point.x,point.y);
-
-	//g.TranslateTransform(0,font.GetHeight(0.0f));/af/平移坐标系  
-
-
-	CString str;
-	str.Format(_T("接收%d 丢%lu"),RecvFrame,iLostFrames);
-	g.DrawString(str, -1, &font, pointF, &brush);
-	    
 	float end = clock();
 	TRACE("LiveView coast time = %f\n",end - begin);
 }
 void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 {
+	CRect rect;
+	GetClientRect(&rect);
 	if (mAdjust)
 	{
-		adjustG_cs[1].Lock();
 		if (!AdjustING)
 		{
 			adjustImage_C[1]->setImageInfo(pAqImageInfo);
 		}
-		adjustG_cs[1].Unlock();
 	} 
 	else
 	{
 //End1:
-		CRect rect;
-		GetClientRect(&rect);
 		if(CtrLine == 42)
 		{
 			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4,0,rect.Width()/4,rect.Height()/2,HALFTONE);
@@ -885,6 +878,20 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 
 	TRACE("相机1：%d,LostFrames=%d,CurruptedFrames=%d,RecvFrame=%d,iTimeStamp=%llu,iAwaitDelivery=%d\n",Count1,iLostFrames,
 		iCurruptedFrames,RecvFrame1,pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
+	HDC hdc = this->GetDC()->GetSafeHdc();
+	st_DrawText pDrawText;
+	pDrawText.graph = ::new Graphics(hdc);
+	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
+	pDrawText.a = 255;
+	pDrawText.r = 255;
+	pDrawText.g = 0;
+	pDrawText.b = 0;
+	pDrawText.pWnd = this;
+	pDrawText.X = rect.Width() / 4;
+	pDrawText.Y = 0;
+	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame1,iLostFrames);
+
+	showView->DrawText_k(&pDrawText);
 
 }
 
@@ -1260,9 +1267,11 @@ void CFlowNavigatorDlg::OnSetValues()
 	//SetTimer(1,1000,NULL);
 	if(setDlg == NULL )
 	{
-		setDlg = new CSetValue;
+		setDlg = new CSetValue(NULL, m_CurrentProPath);
 	}
 	setDlg->m_CameraCount = m_CameraCount;
+
+	setDlg->m_CurrentProPath = m_CurrentProPath;//二次选择项目
 
 	for (int i = 0; i<m_CameraCount; i++)
 	{
@@ -1287,55 +1296,6 @@ void CFlowNavigatorDlg::OnSetValues()
 	retval = J_Node_GetValueInt64(m_hExposureNode, TRUE, &int64Val);
 	//retval = J_Node_SetValueInt64(m_hExposureNode, TRUE, (int64_t)29000);
 */
-}
-
-void CFlowNavigatorDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
-{
-	if (m_hCam[0] == NULL)
-	{
-		return;
-	}
-
-	CSliderCtrl *pSCtrl;
-	int iPos;
-	J_STATUS_TYPE retval;
-	NODE_HANDLE hNode;
-	int64_t int64Val;
-
-	if (m_hCam[0] != NULL)
-	{
-		pSCtrl = (CSliderCtrl *)GetDlgItem(IDC_SLIDER1);
-		retval = J_Camera_GetNodeByName(m_hCam[0],NODE_NAME_EXPOSURE,&m_hExposureNode);
-		if (retval == J_ST_SUCCESS)
-		{
-			retval = J_Node_GetMinInt64(m_hExposureNode,&int64Val);
-			SetDlgItemInt(IDC_MinExposure,(int)int64Val);
-			pSCtrl->SetRangeMin((int)int64Val,TRUE);
-			int minExposure = (int)int64Val;
-
-			retval = J_Node_GetMaxInt64(m_hExposureNode,&int64Val);
-			SetDlgItemInt(IDC_MaxExposure,(int)int64Val);
-			pSCtrl->SetRangeMax((int)int64Val,TRUE);
-			int maxExposure = (int)int64Val;
-
-			retval = J_Node_GetValueInt64(m_hCam[0],TRUE,&int64Val);
-			SetDlgItemInt(IDC_CurExposure,(int)int64Val);	
-
-			pSCtrl->SetSelection(minExposure,maxExposure);
-			pSCtrl->SetTicFreq((maxExposure-minExposure)/20);
-		}
-	}
-
-	//pSCtrl = (CSliderCtrl *)GetDlgItem(IDC_SLIDER1);
-
-	if (pSCtrl == (CSliderCtrl *)pScrollBar)
-	{
-		iPos = pSCtrl->GetPos();//current position
-
-		retval = J_Camera_GetNodeByName(m_hCam,NODE_NAME_EXPOSURE,&m_hExposureNode);
-		retval = J_Node_SetValueInt64(m_hExposureNode,TRUE,iPos);
-	}
-	CDialog::OnHScroll(nSBCode, nPos, pScrollBar);
 }
 
 void CFlowNavigatorDlg::On4Col2Line()
@@ -1738,4 +1698,39 @@ void CFlowNavigatorDlg::OnTest()
 	// TODO: 在此添加命令处理程序代码
 	mLink = FALSE;
 	mAdjust = FALSE;
+}
+
+void CFlowNavigatorDlg::OnCreateproj()
+{
+	// TODO: 在此添加命令处理程序代码
+	CString dstDir = DEFAULT_PATH;
+
+	CString SubDir[MAX_SUBDIR] = {_T("\\原始数据"), _T("\\图像拼接"), _T("\\流场拼接"), _T("\\配置文件")};
+
+	if(IDOK == SelectDir(dstDir,GetSafeHwnd()))
+	{
+		if (dstDir == DEFAULT_PATH)
+		{
+			dstDir += _T("\\HawkSoftWorkSpace");
+			CreatePathDir(dstDir);
+			CTime time = CTime::GetCurrentTime();
+			CString Time = time.Format(_T("%Y%m%d%H%M%S"));
+			dstDir += _T("\\FlowNavigator") + Time;
+			CreatePathDir(dstDir);
+		}
+		TRACE(_T("project path: %s\n"), dstDir);
+		InitPathDir(dstDir, SubDir, MAX_SUBDIR);
+
+		SetWindowText(dstDir);
+		m_CurrentProPath = dstDir;
+	}
+}
+
+void CFlowNavigatorDlg::InitPathDir(CString dstDir, CString SubDir[], UINT_K length)
+{
+	//UINT_K length = sizeof(SubDir) / sizeof(CString);//这样是得不到长度的，sizeof(SubDir) == 8 ，CString是指针类型？
+	for (UINT_K i = 0; i < length; i++)
+	{
+		CreatePathDir(dstDir + SubDir[i]);
+	}
 }

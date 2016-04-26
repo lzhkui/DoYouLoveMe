@@ -126,7 +126,7 @@ void ShowView::LiveView_CWJ(unsigned char * pImageBuffer, BITMAPINFO* bmpInfo, i
 void ShowView::DrawText_k(st_DrawText *pDrawText)
 {
 	// Set the text rendering for Cleartype
-	pDrawText->graph.SetTextRenderingHint(pDrawText->Mode);
+	pDrawText->graph->SetTextRenderingHint(pDrawText->Mode);
 
 	// Create a red Solid Brush Color(A,R,G,B)
 	SolidBrush brush(Color(pDrawText->a,pDrawText->r,pDrawText->g,pDrawText->b));
@@ -142,5 +142,5 @@ void ShowView::DrawText_k(st_DrawText *pDrawText)
 	PointF pointF(point.x,point.y);
 
 	//g.TranslateTransform(0,font.GetHeight(0.0f));/af/Æ½ÒÆ×ø±êÏµ  
-	pDrawText->graph.DrawString(pDrawText->showStr, -1, &font, pointF, &brush);
+	pDrawText->graph->DrawString(pDrawText->showStr, -1, &font, pointF, &brush);
 }

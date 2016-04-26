@@ -26,6 +26,9 @@
 #define IDC_PROGRESS1                   1013
 #define IDC_CANCEL                      1014
 #define IDC_SampleTIme                  1015
+#define IDC_SAVESETUP                   1018
+#define IDC_BUTTON2                     1019
+#define IDC_LOADLASTSETUP               1019
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -57,14 +60,15 @@
 #define ID_Link                         32799
 #define ID_32800                        32800
 #define ID_Test                         32801
+#define ID_CreateProj                   32802
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
-#define _APS_NEXT_COMMAND_VALUE         32802
-#define _APS_NEXT_CONTROL_VALUE         1018
+#define _APS_NEXT_COMMAND_VALUE         32803
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -5,12 +5,11 @@
 #include "FlowNavigator.h"
 #include "SetValue.h"
 
-
 // SetValue 对话框
 
 IMPLEMENT_DYNAMIC(CSetValue, CDialog)
 
-CSetValue::CSetValue(CWnd* pParent /*=NULL*/)
+CSetValue::CSetValue(CWnd* pParent /*=NULL*/, CString curProPath)
 	: CDialog(CSetValue::IDD, pParent)
 	, m_MinExposure(0)
 	, m_MaxExposure(0)
@@ -28,10 +27,12 @@ CSetValue::CSetValue(CWnd* pParent /*=NULL*/)
 		m_hCam[i] = NULL;
 	}
 	m_hExposureNode = NULL;
+	m_CurrentProPath = curProPath;
 }
 
 CSetValue::~CSetValue()
 {
+	OnBnClickedSaveSetup();
 }
 
 void CSetValue::DoDataExchange(CDataExchange* pDX)
@@ -59,6 +60,8 @@ BEGIN_MESSAGE_MAP(CSetValue, CDialog)
 	ON_STN_CLICKED(IDC_MinExposure, &CSetValue::OnStnClickedMinexposure)
 	ON_EN_CHANGE(IDC_CurExposure, &CSetValue::OnEnChangeCurexposure)
 	ON_WM_HSCROLL()
+	ON_BN_CLICKED(IDC_SAVESETUP, &CSetValue::OnBnClickedSaveSetup)
+	ON_BN_CLICKED(IDC_LOADLASTSETUP, &CSetValue::OnBnClickedLoadlastsetup)
 END_MESSAGE_MAP()
 
 
@@ -459,3 +462,77 @@ void CSetValue::OnCancel()
 	//CDialog::OnCancel();
 }
 
+
+void CSetValue::OnBnClickedSaveSetup()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	CString content;
+	CString SetUpPath = m_CurrentProPath + _T("\\配置文件") + _T("\\CameraSetup.txt");
+
+	content.Format(_T("<Exposure>%d<Exposure>\r\n<Gain>%d<Gain>\r\n<Frame>%lf<Frame>\r\n"),
+		m_CurExposure, m_CurGain, m_CurFrame);
+
+	content = _T("<ProPath>") + m_CurrentProPath +  _T("<ProPath>")  + _T("\r\n") + content;
+
+	WriteTxt(SetUpPath, content);
+
+// 	content = _T("<ProPath>") + m_CurrentProPath + _T("\n");
+// 	WriteTxtByLine(SetUpPath,  content);
+// 
+// 	content.Format(_T("<Exposure>%d\n"), m_CurExposure);
+// 	WriteTxtByLine(SetUpPath,  content);
+// 
+// 	content.Format(_T("<Gain>%d\n"), m_CurGain);
+// 	WriteTxtByLine(SetUpPath,  content);
+// 
+// 	content.Format(_T("<Frame>%lf\n"), m_CurFrame);
+// 	WriteTxtByLine(SetUpPath,  content);
+	
+}
+
+void CSetValue::OnBnClickedLoadlastsetup()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	CString lastExposure;
+	CString lastGain;
+	CString lastFrame;
+
+	CString configFileTxT;
+	ParseConfig(m_CurrentProPath + _T("\\配置文件\\CameraSetup.txt"), Exposure, lastExposure, configFileTxT);
+	ParseConfig(m_CurrentProPath + _T("\\配置文件\\CameraSetup.txt"), Gain, lastGain, configFileTxT);
+	ParseConfig(m_CurrentProPath + _T("\\配置文件\\CameraSetup.txt"), Frame, lastFrame, configFileTxT);
+
+	m_CurExposure = _ttoi(lastExposure);
+	m_CurGain = _ttoi(lastGain);
+	m_CurFrame = _ttol(lastFrame);
+	UpdateData(FALSE);
+	if(m_hCam[0] != NULL)
+	{
+		if(J_ST_SUCCESS != SetValueInt_CWJ(m_hCam,NODE_NAME_EXPOSURE,(int64_t)m_CurExposure,m_CameraCount))
+		{
+			return;
+		}
+		if(J_ST_SUCCESS != SetValueInt_CWJ(m_hCam,NODE_NAME_GAIN,(int64_t)m_CurGain,m_CameraCount))
+		{
+			return;
+		}
+	}
+	NODE_HANDLE hNode;
+	if(m_hCam[0] != NULL)
+	{
+		for (int i = 0; i < m_CameraCount; i++)
+		{
+			if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[i],"AcquisitionFrameRate",&hNode))
+			{
+				J_Node_SetValueDouble(hNode,TRUE,m_CurFrame);
+			}
+			else
+			{
+				AfxMessageBox(_T("帧率未设置成功，请重启设备!"),MB_ICONINFORMATION);
+			}
+		}
+	}
+	mExpSliderCtrl.SetPos(m_CurExposure);
+	mGainSliderCtrl.SetPos(m_CurGain);
+	mFrameSliderCtrl.SetPos(m_CurFrame);
+}

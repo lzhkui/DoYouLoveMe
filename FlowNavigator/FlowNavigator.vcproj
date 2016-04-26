@@ -363,7 +363,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\BuildDir.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CSetSampleDlg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ErrorCodeList.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ErrorCodeList.h"
 				>
 			</File>
 			<File
@@ -446,6 +458,10 @@
 			</File>
 			<File
 				RelativePath=".\AdjustThreadFunc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\BuildDir.h"
 				>
 			</File>
 			<File

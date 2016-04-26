@@ -16,6 +16,7 @@
 #include "AdjustThreadFunc.h"
 #include "LinkImage.h"
 #include   <afxpriv.h> //T2A()可能用到
+#include "ErrorCodeList.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -31,7 +32,6 @@
 #define K_INIT_HEIGH 2048
 
 #define MAX_IMG_COUNT 100
-
 
 // CFlowNavigatorDlg 对话框
 class CFlowNavigatorDlg : public CDialog
@@ -51,11 +51,14 @@ public:
 	unsigned char *relateArr;
 
 	ShowView *showView;//用于实时显示
+	CString m_CurrentProPath; //保存当前项目路径
 
 	//用于GDI+初始化函数
 private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
+
+
 
 public:
 	FACTORY_HANDLE  m_hFactory;                         // Factory Handle
@@ -124,8 +127,6 @@ private:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
-
 	afx_msg void OnOpenCamera();
 	afx_msg void OnCloseCamera();
 	afx_msg void OnQuit();
@@ -138,6 +139,10 @@ public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnClose();
 
+	afx_msg void OnAdjust();
+	afx_msg void OnLink();
+	afx_msg void OnTest();
+	afx_msg void OnCreateproj();
 	static int SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo,int Count,
 		 const char* numCam,
 		 const char* path = NULL, const char* fileName = NULL);
@@ -154,8 +159,7 @@ public:
 // 			const char* numCam,
 // 			const char* path = NULL, const char* fileName = NULL);
 
-	afx_msg void OnAdjust();
-	afx_msg void OnLink();
+
 	void EndControl(void);
-	afx_msg void OnTest();
+	void InitPathDir(CString dstDir, CString SubDir[], UINT_K length);//创建项目工程
 };
