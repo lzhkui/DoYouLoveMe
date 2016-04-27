@@ -51,7 +51,6 @@ public:
 	unsigned char *relateArr;
 
 	ShowView *showView;//用于实时显示
-	CString m_CurrentProPath; //保存当前项目路径
 
 	//用于GDI+初始化函数
 private:
@@ -74,7 +73,7 @@ public:
 	//J_tIMAGE_INFO		m_CnvImageInfo;    // Image info structure
 	
 	BITMAPINFO *bmpinfo;
-	int RecvFrame,RecvFrame1;//当前接收到的帧数
+	int RecvFrame[MAX_CAMERAS];//当前接收到的帧数
 	CWinThread* hThread[MAX_CAMERAS]; //存图片线程
 
 	//LOGPALETTE *pLogPal;   

@@ -25,6 +25,7 @@ Count4,Count5,Count6,Count7;
 int Count_[MAX_CAMERAS];
 
 BOOL b_isContinuous = FALSE;//true:连续模式 false:潮流
+CString m_CurrentProPath; //保存当前项目路径
 
 CCriticalSection g_cs,g_cs1,g_cs2,g_cs3,
 g_cs4,g_cs5,g_cs6,g_cs7;
@@ -119,7 +120,6 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	m_CnvImageInfo6.pImageBuffer = NULL;
 	m_CnvImageInfo7.pImageBuffer = NULL;
 	Count=Count1=Count2=Count3=Count4=Count5=Count6=Count7=5;
-	RecvFrame=RecvFrame1=0;
 	m_pAdjustCls = (pAdajustCLs)malloc(sizeof(AdajustCLs));//校正线程传入参数
 	showView = new ShowView(this); 
 	m_CurrentProPath = DEFAULT_PATH;
@@ -135,6 +135,7 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 		head[i] = myImageInfo.CreateLink();//创建单链表，初始化头节点
 		Count_[i] = 0;
 		test_count_getImage[i] = 20;
+		RecvFrame[i] = 0;
 	}
 	bmpinfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpinfo,0,sizeof(BITMAPINFO)); 
@@ -755,7 +756,7 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 {
 	float begin = clock();
 
-	RecvFrame++;
+	(RecvFrame[0])++;
 	CRect rect;
 	GetClientRect(&rect);
 
@@ -806,12 +807,13 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 	// get the number of frames which has been corrupted 
 	J_Image_GetStreamInfo(m_hThread[0], STREAM_INFO_CMD_NUMBER_OF_FRAMES_CORRUPT_ON_DELIEVRY, &iCurruptedFrames, &iSize);
 	TRACE("相机0：%d,LostFrames=%d,CurruptedFrames=%d,RecvFrame=%d,iTimeStamp=%llu,iAwaitDelivery=%d\n",Count,iLostFrames,
-		iCurruptedFrames,RecvFrame,pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
+		iCurruptedFrames,RecvFrame[0],pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
 
 	//Graphics g(this->GetDC()->GetSafeHdc());
-	HDC hdc = this->GetDC()->GetSafeHdc();
+	CDC *pDc = this->GetDC();
+	HDC hdc = pDc->GetSafeHdc();
 	st_DrawText pDrawText;
-	pDrawText.graph = ::new Graphics(hdc);
+	pDrawText.graph = Graphics::FromHDC(hdc)/*::new Graphics(hdc)*/;//这里用new delete就报错了
 	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
 	pDrawText.a = 255;
 	pDrawText.r = 255;
@@ -820,15 +822,21 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 	pDrawText.pWnd = this;
 	pDrawText.X = 0;
 	pDrawText.Y = 0;
-	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame,iLostFrames);
+	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame[0],iLostFrames);
 
 	showView->DrawText_k(&pDrawText);
+
+	delete pDrawText.graph;
+	pDrawText.graph = NULL;
+	ReleaseDC(pDc);
 
 	float end = clock();
 	TRACE("LiveView coast time = %f\n",end - begin);
 }
 void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 {
+	(RecvFrame[1])++;
+
 	CRect rect;
 	GetClientRect(&rect);
 	if (mAdjust)
@@ -864,7 +872,6 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 			}
 		}
 	}
-	RecvFrame1++;
 
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
@@ -877,10 +884,12 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 	J_Image_GetStreamInfo(m_hThread[1], STREAM_INFO_CMD_NUMBER_OF_FRAMES_CORRUPT_ON_DELIEVRY, &iCurruptedFrames, &iSize);
 
 	TRACE("相机1：%d,LostFrames=%d,CurruptedFrames=%d,RecvFrame=%d,iTimeStamp=%llu,iAwaitDelivery=%d\n",Count1,iLostFrames,
-		iCurruptedFrames,RecvFrame1,pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
-	HDC hdc = this->GetDC()->GetSafeHdc();
+		iCurruptedFrames,RecvFrame[1],pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
+
+	CDC *pDc = this->GetDC();
+	HDC hdc = pDc->GetSafeHdc();
 	st_DrawText pDrawText;
-	pDrawText.graph = ::new Graphics(hdc);
+	pDrawText.graph = Graphics::FromHDC(hdc);
 	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
 	pDrawText.a = 255;
 	pDrawText.r = 255;
@@ -889,9 +898,13 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 	pDrawText.pWnd = this;
 	pDrawText.X = rect.Width() / 4;
 	pDrawText.Y = 0;
-	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame1,iLostFrames);
+	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame[1],iLostFrames);
 
 	showView->DrawText_k(&pDrawText);
+
+	delete pDrawText.graph;
+	pDrawText.graph = NULL;
+	ReleaseDC(pDc);
 
 }
 
@@ -1161,7 +1174,10 @@ void CFlowNavigatorDlg::EndControl(void)
 
 void CFlowNavigatorDlg::EnableControls()
 {
-
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		RecvFrame[i] = 0;
+	}
 }
 
 void CFlowNavigatorDlg::ShowErrorMsg(CString message, J_STATUS_TYPE error)
@@ -1241,6 +1257,8 @@ void CFlowNavigatorDlg::OnQuit()
 
 	OnOK();
 	CloseFactoryAndCamera();
+	GdiplusShutdown(gdiplusToken);
+
 }
 
 void CFlowNavigatorDlg::OnDestroy()
@@ -1254,6 +1272,8 @@ void CFlowNavigatorDlg::OnDestroy()
 		delete setDlg;
 		setDlg = NULL;
 	}
+	GdiplusShutdown(gdiplusToken);
+
 	CDialog::OnDestroy();
 }
 
@@ -1364,7 +1384,17 @@ UINT Write2File(LPVOID param)
 
 			if(Count_[0] > 0)
 			{
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo,Count_[0],"0");
+				char path[MAX_PATH];
+				if(m_CurrentProPath == DEFAULT_PATH)
+				{
+					CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo,Count_[0],"0");
+				}
+				else
+				{
+					wcstombs(path, m_CurrentProPath, m_CurrentProPath.GetLength());
+				}
+
+				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo,Count_[0],"0", path);
 
 				g_cs.Lock();
 				ImageInfo::DelTail(pHead);
@@ -1648,8 +1678,10 @@ void CFlowNavigatorDlg::OnClose()
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	//b_isContinuous = FALSE;//否则 存储线程不能正常退出，其中的临界区出现报错，中断
-	EnableControls();
 	CloseFactoryAndCamera();
+	EnableControls();
+	GdiplusShutdown(gdiplusToken);
+
 	if (setDlg != NULL)
 	{	
 		delete setDlg;
