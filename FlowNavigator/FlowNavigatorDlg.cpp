@@ -10,27 +10,38 @@
 #endif
 
 #include "BuildDir.h"
-using namespace BuildDir;//建立项目目录
+using namespace BuildDir;     //建立项目目录
 
 
 //PathIsDirectory()
 #include "shlwapi.h"
 #pragma comment(lib,"shlwapi.lib")
 //保存Image
-J_tIMAGE_INFO m_CnvImageInfo,m_CnvImageInfo1,m_CnvImageInfo2,m_CnvImageInfo3,m_CnvImageInfo4,
-m_CnvImageInfo5,m_CnvImageInfo6,m_CnvImageInfo7;
+J_tIMAGE_INFO m_CnvImageInfo[MAX_CAMERAS];
 
+//连续模式
 int Count,Count1,Count2,Count3,
 Count4,Count5,Count6,Count7;
 int Count_[MAX_CAMERAS];
 
-BOOL b_isContinuous = FALSE;//true:连续模式 false:潮流
-CString m_CurrentProPath; //保存当前项目路径
+//潮流模式
+int Count_Single[MAX_CAMERAS];//流场个数
+int Count_Space[MAX_CAMERAS]; //流场间隔
+
+int Count_Once[MAX_CAMERAS];  //单次采集张数
+int Copy_Count_Once[MAX_CAMERAS];
+
+int Space_Frame[MAX_CAMERAS]; //流场间隔*当前帧数
+int Copy_Space_Frame[MAX_CAMERAS];
+
+BOOL b_isContinuous = FALSE;  //true:连续模式
+BOOL b_isSingleFrame = FALSE; //true:潮流
+CString m_CurrentProPath;     //保存当前项目路径
 
 CCriticalSection g_cs,g_cs1,g_cs2,g_cs3,
 g_cs4,g_cs5,g_cs6,g_cs7;
 
-CWaitLoading *dlgWait;//进度条等待对话框
+CWaitLoading *dlgWait       ;//进度条等待对话框
 UINT CreateWaitDlg(LPVOID pParam);
 //UINT Write2File(LPVOID param);
 
@@ -111,14 +122,7 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	m_CameraCount = 0;
 	CtrLine = 42;
 	setDlg = NULL;
-	m_CnvImageInfo.pImageBuffer = NULL;
-	m_CnvImageInfo1.pImageBuffer = NULL;
-	m_CnvImageInfo2.pImageBuffer = NULL;
-	m_CnvImageInfo3.pImageBuffer = NULL;
-	m_CnvImageInfo4.pImageBuffer = NULL;
-	m_CnvImageInfo5.pImageBuffer = NULL;
-	m_CnvImageInfo6.pImageBuffer = NULL;
-	m_CnvImageInfo7.pImageBuffer = NULL;
+	
 	Count=Count1=Count2=Count3=Count4=Count5=Count6=Count7=5;
 	m_pAdjustCls = (pAdajustCLs)malloc(sizeof(AdajustCLs));//校正线程传入参数
 	showView = new ShowView(this); 
@@ -136,6 +140,7 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 		Count_[i] = 0;
 		test_count_getImage[i] = 20;
 		RecvFrame[i] = 0;
+		(m_CnvImageInfo[i]).pImageBuffer = NULL;// 必须置空，否则后面不分配空间
 	}
 	bmpinfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpinfo,0,sizeof(BITMAPINFO)); 
@@ -671,8 +676,35 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO * pAqImageInfo)
 // 		pData = NULL;	
 }
 */
+int SaveImage(CString CurrentProPath, 
+			  J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo, int* Count,
+			  const char* numCam, 
+			  const char* path = NULL, const char* fileName = NULL)
+{
+	if(*Count > 0)
+	{
+		char path[MAX_PATH]={0};
+		if(m_CurrentProPath == DEFAULT_PATH)
+		{
+			CFlowNavigatorDlg::SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo,*Count,numCam);
+		}
+		else
+		{
+			CString tempPath = m_CurrentProPath + _T("原始数据");
+			int nLength = WideCharToMultiByte(CP_ACP, 0, tempPath, tempPath.GetLength(),
+				NULL, 0, NULL, NULL);
+			WideCharToMultiByte(CP_ACP, 0, tempPath, tempPath.GetLength(), path, nLength, NULL, NULL);
+			//wcstombs(path, m_CurrentProPath, m_CurrentProPath.GetLength());//这个直接替代上面几句话
+		}
+
+		CFlowNavigatorDlg::SaveImage_CWJ(pAqImageInfo, m_CnvImageInfo, *Count, numCam , path);
+		(*Count)--;
+	}
+
+	return 0;
+}
 int CFlowNavigatorDlg::SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo, int Count,
-									 const char* numCam,
+									 const char* numCam, 
 									 const char* path, const char* fileName)
 {
 	//限制多线程访问，否则存出来的图会串掉（可能有的图的内容是几幅图片揉在一起的情况）//由于共享全局变量
@@ -718,11 +750,26 @@ int CFlowNavigatorDlg::SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO&
 				}
 
 				filePath.Format(_T("%s\\%d.tiff"),pathDir,Count);
-				filePath.Replace(_T("\\"),_T("\\\\"));
+				//filePath.Replace(_T("\\"),_T("\\\\"));
 
 				//因为LPCSTR是ANSI标准下的，现在字符集是Unicode
                 USES_CONVERSION;
 				J_Image_SaveFileA(&m_CnvImageInfo, (LPCSTR)T2A(filePath)); // Stores RGB image to a TIFF file.
+			}
+			else
+			{
+				char tempPath[MAX_PATH] = {0};
+				strcpy(tempPath, path);
+				sprintf(tempPath, "%s\\%s", tempPath, numCam);
+				CString s_tempPath(tempPath);
+				if(!PathIsDirectory(s_tempPath))
+				{
+					::CreateDirectory(s_tempPath,NULL);
+				}
+
+				sprintf(tempPath, "%s\\%d.tiff", tempPath, Count);
+				
+				J_Image_SaveFileA(&m_CnvImageInfo, tempPath);
 			}
 			//J_Image_SaveFileA(&m_CnvImageInfo, (LPCSTR)"D:\\2.tiff"); // Stores RGB image to a TIFF file.
 		}
@@ -751,7 +798,60 @@ int CFlowNavigatorDlg::InsertHead(pImageNode pImage, J_tIMAGE_INFO* pAqImageInfo
 	//g_cs.Unlock();
 	return 0;
 }
+void DrawTextByCamSign(CWnd* pWnd, ShowView* pShowView, int recv, int lost, int X, int Y)
+{
+	CDC *pDc = pWnd->GetDC();
+	HDC hdc = pDc->GetSafeHdc();
+	st_DrawText pDrawText;
+	pDrawText.graph = Graphics::FromHDC(hdc)/*::new Graphics(hdc)*/;//这里用new delete就报错了
+	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
+	pDrawText.a = 255;
+	pDrawText.r = 255;
+	pDrawText.g = 0;
+	pDrawText.b = 0;
+	pDrawText.pWnd = pWnd;
+	pDrawText.X = X;
+	pDrawText.Y = Y;
+	pDrawText.showStr.Format(_T("接收%d 丢%lu"), recv, lost);
 
+	pShowView->DrawText_k(&pDrawText);
+
+	delete pDrawText.graph;
+	pDrawText.graph = NULL;
+	pWnd->ReleaseDC(pDc);
+}
+void  CFlowNavigatorDlg::insertSingle(int* Count_Single, int* Count_Once, int* Space_Frame,
+									  const int Copy_Space_Frame, const int Copy_CountOnce,
+									  pImageNode* pImage, J_tIMAGE_INFO** pAqImageInfo, ImageInfo cls,  
+									  pImageNode* pHead)
+{
+	if (*Count_Single > 0)
+	{
+		if (*Count_Once > 0)
+		{
+			if(-1 == InsertHead(*pImage,*pAqImageInfo,cls,*pHead))
+			{
+				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
+				OnClose();
+			}
+
+			(*Count_Once)--;
+			if (*Count_Once == 0)
+			{
+				(*Count_Single)--;
+			}
+		}
+		else if (*Space_Frame > 0)
+		{
+			(*Space_Frame)--;
+			if (*(Space_Frame) == 0)
+			{
+				*Count_Once = Copy_CountOnce;
+				*(Space_Frame) = Copy_Space_Frame;
+			}
+		}
+	}
+}
 void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 {
 	float begin = clock();
@@ -796,6 +896,14 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 				TRACE("InsertHead:%f\n",end - begin);//2毫秒
 			}
 		}
+		else if (b_isSingleFrame)
+		{
+			g_cs.Lock();
+			insertSingle(&(Count_Single[0]),&(Count_Once[0]), &(Space_Frame[0]),
+				Copy_Space_Frame[0],Copy_Count_Once[0],
+				&(pImage[0]), &pAqImageInfo, myImageInfo, &(head[0]));
+			g_cs.Unlock();
+		}
 	}
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
@@ -809,30 +917,32 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 	TRACE("相机0：%d,LostFrames=%d,CurruptedFrames=%d,RecvFrame=%d,iTimeStamp=%llu,iAwaitDelivery=%d\n",Count,iLostFrames,
 		iCurruptedFrames,RecvFrame[0],pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
 
+	DrawTextByCamSign(this, showView, RecvFrame[0], iLostFrames, 0, 0);
 	//Graphics g(this->GetDC()->GetSafeHdc());
-	CDC *pDc = this->GetDC();
-	HDC hdc = pDc->GetSafeHdc();
-	st_DrawText pDrawText;
-	pDrawText.graph = Graphics::FromHDC(hdc)/*::new Graphics(hdc)*/;//这里用new delete就报错了
-	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
-	pDrawText.a = 255;
-	pDrawText.r = 255;
-	pDrawText.g = 0;
-	pDrawText.b = 0;
-	pDrawText.pWnd = this;
-	pDrawText.X = 0;
-	pDrawText.Y = 0;
-	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame[0],iLostFrames);
-
-	showView->DrawText_k(&pDrawText);
-
-	delete pDrawText.graph;
-	pDrawText.graph = NULL;
-	ReleaseDC(pDc);
+// 	CDC *pDc = this->GetDC();
+// 	HDC hdc = pDc->GetSafeHdc();
+// 	st_DrawText pDrawText;
+// 	pDrawText.graph = Graphics::FromHDC(hdc)/*::new Graphics(hdc)*/;//这里用new delete就报错了
+// 	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
+// 	pDrawText.a = 255;
+// 	pDrawText.r = 255;
+// 	pDrawText.g = 0;
+// 	pDrawText.b = 0;
+// 	pDrawText.pWnd = this;
+// 	pDrawText.X = 0;
+// 	pDrawText.Y = 0;
+// 	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame[0],iLostFrames);
+// 
+// 	showView->DrawText_k(&pDrawText);
+// 
+// 	delete pDrawText.graph;
+// 	pDrawText.graph = NULL;
+// 	ReleaseDC(pDc);
 
 	float end = clock();
 	TRACE("LiveView coast time = %f\n",end - begin);
 }
+
 void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 {
 	(RecvFrame[1])++;
@@ -879,37 +989,14 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 
 	// get the number of lost frames due to a queue under run  
 	J_Image_GetStreamInfo(m_hThread[1], STREAM_INFO_CMD_NUMBER_OF_FRAMES_LOST_QUEUE_UNDERRUN, &iLostFrames, &iSize);
-	iSize = sizeof(uint64_t);
-	// get the number of frames which has been corrupted 
-	J_Image_GetStreamInfo(m_hThread[1], STREAM_INFO_CMD_NUMBER_OF_FRAMES_CORRUPT_ON_DELIEVRY, &iCurruptedFrames, &iSize);
 
-	TRACE("相机1：%d,LostFrames=%d,CurruptedFrames=%d,RecvFrame=%d,iTimeStamp=%llu,iAwaitDelivery=%d\n",Count1,iLostFrames,
-		iCurruptedFrames,RecvFrame[1],pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
-
-	CDC *pDc = this->GetDC();
-	HDC hdc = pDc->GetSafeHdc();
-	st_DrawText pDrawText;
-	pDrawText.graph = Graphics::FromHDC(hdc);
-	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
-	pDrawText.a = 255;
-	pDrawText.r = 255;
-	pDrawText.g = 0;
-	pDrawText.b = 0;
-	pDrawText.pWnd = this;
-	pDrawText.X = rect.Width() / 4;
-	pDrawText.Y = 0;
-	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame[1],iLostFrames);
-
-	showView->DrawText_k(&pDrawText);
-
-	delete pDrawText.graph;
-	pDrawText.graph = NULL;
-	ReleaseDC(pDc);
+	DrawTextByCamSign(this, showView, RecvFrame[1], iLostFrames, rect.Width() / 4, 0);
 
 }
 
 void CFlowNavigatorDlg::StreamCBFunc2(J_tIMAGE_INFO * pAqImageInfo)
 {	
+	(RecvFrame[2])++;
 	CRect rect;
 	GetClientRect(&rect);
 	if (CtrLine == 42)
@@ -935,10 +1022,18 @@ void CFlowNavigatorDlg::StreamCBFunc2(J_tIMAGE_INFO * pAqImageInfo)
 			TRACE("相机2：%d\n",Count2);
 		}
 	}
+	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
+	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
+	uint32_t iSize = sizeof(uint64_t);
 
+	// get the number of lost frames due to a queue under run  
+	J_Image_GetStreamInfo(m_hThread[2], STREAM_INFO_CMD_NUMBER_OF_FRAMES_LOST_QUEUE_UNDERRUN, &iLostFrames, &iSize);
+
+	DrawTextByCamSign(this, showView, RecvFrame[2], iLostFrames, rect.Width()/ 2, 0);
 }
 void CFlowNavigatorDlg::StreamCBFunc3(J_tIMAGE_INFO * pAqImageInfo)
 {
+	(RecvFrame[3])++;
 	CRect rect;
 	GetClientRect(&rect);
 	if(CtrLine == 42)
@@ -964,10 +1059,19 @@ void CFlowNavigatorDlg::StreamCBFunc3(J_tIMAGE_INFO * pAqImageInfo)
 			TRACE("相机3：%d\n",Count3);
 		}
 	}
+	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
+	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
+	uint32_t iSize = sizeof(uint64_t);
+
+	// get the number of lost frames due to a queue under run  
+	J_Image_GetStreamInfo(m_hThread[3], STREAM_INFO_CMD_NUMBER_OF_FRAMES_LOST_QUEUE_UNDERRUN, &iLostFrames, &iSize);
+
+	DrawTextByCamSign(this, showView, RecvFrame[3], iLostFrames, rect.Width() / 4 * 3, 0);
 
 }
 void CFlowNavigatorDlg::StreamCBFunc4(J_tIMAGE_INFO * pAqImageInfo)
 {
+	(RecvFrame[4])++;
 	CRect rect;
 	GetClientRect(&rect);
 	if(CtrLine ==42)
@@ -993,10 +1097,19 @@ void CFlowNavigatorDlg::StreamCBFunc4(J_tIMAGE_INFO * pAqImageInfo)
 			TRACE("相机4：%d\n",Count4);
 		}
 	}
+	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
+	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
+	uint32_t iSize = sizeof(uint64_t);
+
+	// get the number of lost frames due to a queue under run  
+	J_Image_GetStreamInfo(m_hThread[4], STREAM_INFO_CMD_NUMBER_OF_FRAMES_LOST_QUEUE_UNDERRUN, &iLostFrames, &iSize);
+
+	DrawTextByCamSign(this, showView, RecvFrame[4], iLostFrames, 0, rect.Height() / 2);
 
 }
 void CFlowNavigatorDlg::StreamCBFunc5(J_tIMAGE_INFO * pAqImageInfo)
 {
+	(RecvFrame[5])++;
 	CRect rect;
 	GetClientRect(&rect);
 	if (CtrLine == 42)
@@ -1022,10 +1135,19 @@ void CFlowNavigatorDlg::StreamCBFunc5(J_tIMAGE_INFO * pAqImageInfo)
 			TRACE("相机5：%d\n",Count5);
 		}
 	}
+	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
+	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
+	uint32_t iSize = sizeof(uint64_t);
+
+	// get the number of lost frames due to a queue under run  
+	J_Image_GetStreamInfo(m_hThread[5], STREAM_INFO_CMD_NUMBER_OF_FRAMES_LOST_QUEUE_UNDERRUN, &iLostFrames, &iSize);
+
+	DrawTextByCamSign(this, showView, RecvFrame[5], iLostFrames, rect.Width() / 4, rect.Height() / 2);
 
 }
 void CFlowNavigatorDlg::StreamCBFunc6(J_tIMAGE_INFO * pAqImageInfo)
 {
+	(RecvFrame[6])++;
 	CRect rect;
 	GetClientRect(&rect);
 	if (CtrLine == 42)
@@ -1051,10 +1173,18 @@ void CFlowNavigatorDlg::StreamCBFunc6(J_tIMAGE_INFO * pAqImageInfo)
 			TRACE("相机6：%d\n",Count6);
 		}
 	}
+	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
+	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
+	uint32_t iSize = sizeof(uint64_t);
+
+	J_Image_GetStreamInfo(m_hThread[6], STREAM_INFO_CMD_NUMBER_OF_FRAMES_LOST_QUEUE_UNDERRUN, &iLostFrames, &iSize);
+
+	DrawTextByCamSign(this, showView, RecvFrame[6], iLostFrames, rect.Width() / 2, rect.Height() / 2);
 
 }
 void CFlowNavigatorDlg::StreamCBFunc7(J_tIMAGE_INFO * pAqImageInfo)
 {
+	(RecvFrame[7])++;
 	CRect rect;
 	GetClientRect(&rect);
 	if (CtrLine ==42)
@@ -1080,6 +1210,13 @@ void CFlowNavigatorDlg::StreamCBFunc7(J_tIMAGE_INFO * pAqImageInfo)
 			TRACE("相机7：%d\n",Count7);
 		}
 	}
+	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
+	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
+	uint32_t iSize = sizeof(uint64_t);
+
+	J_Image_GetStreamInfo(m_hThread[7], STREAM_INFO_CMD_NUMBER_OF_FRAMES_LOST_QUEUE_UNDERRUN, &iLostFrames, &iSize);
+
+	DrawTextByCamSign(this, showView, RecvFrame[7], iLostFrames, rect.Width() / 4 * 3, rect.Height() / 2);
 
 }
 void CFlowNavigatorDlg::LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,
@@ -1253,6 +1390,7 @@ void CFlowNavigatorDlg::OnCloseCamera()
 void CFlowNavigatorDlg::OnQuit()
 {
 	// TODO: 在此添加命令处理程序代码
+	EndControl();
 	EnableControls();
 
 	OnOK();
@@ -1365,7 +1503,7 @@ UINT Write2File(LPVOID param)
 {
 	TRACE("Write2File!\n");
 
-	while(b_isContinuous)
+	while(b_isContinuous || b_isSingleFrame)
 	{
 		float begin = clock();
 
@@ -1382,36 +1520,41 @@ UINT Write2File(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			if(Count_[0] > 0)
-			{
-				char path[MAX_PATH];
-				if(m_CurrentProPath == DEFAULT_PATH)
-				{
-					CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo,Count_[0],"0");
-				}
-				else
-				{
-					wcstombs(path, m_CurrentProPath, m_CurrentProPath.GetLength());
-				}
-
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo,Count_[0],"0", path);
+			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[0], &(Count_[0]),"0");
+// 			if(Count_[0] > 0)
+// 			{
+// 				char path[MAX_PATH]={0};
+// 				if(m_CurrentProPath == DEFAULT_PATH)
+// 				{
+// 					CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo,Count_[0],"0");
+// 				}
+// 				else
+// 				{
+// 					CString tempPath = m_CurrentProPath + _T("\\原始数据");
+// 					int nLength = WideCharToMultiByte(CP_ACP, 0, tempPath, tempPath.GetLength(),
+// 						NULL, 0, NULL, NULL);
+// 					WideCharToMultiByte(CP_ACP, 0, tempPath, tempPath.GetLength(), path, nLength, NULL, NULL);
+// 					//wcstombs(path, m_CurrentProPath, m_CurrentProPath.GetLength());//这个直接替代上面几句话
+// 				}
+// 
+// 				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo,Count_[0],"0", path);
 
 				g_cs.Lock();
 				ImageInfo::DelTail(pHead);
 				g_cs.Unlock();
-				(Count_[0])--;
-			}
+			//}
 		}
 
 		float end = clock();
 		TRACE("Write2File time %d: %lf\n",Count_[0],end-begin);
-	}	
+	}
+
 	return 0;
 }
 
 UINT Write2File1(LPVOID param)
 {
-	while(b_isContinuous)
+	while(b_isSingleFrame || b_isContinuous)
 	{
 		pImageNode pHead = (pImageNode)param;
 		g_cs1.Lock();
@@ -1425,15 +1568,12 @@ UINT Write2File1(LPVOID param)
 		else
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
+			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[1], &(Count_[1]),"1");
 
-			if(Count_[1] > 0){
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo1,Count_[1],"1");
-
-				g_cs1.Lock();
-				ImageInfo::DelTail(pHead);
-				g_cs1.Unlock();
-				(Count_[1])--;
-			}
+			g_cs1.Lock();
+			ImageInfo::DelTail(pHead);
+			g_cs1.Unlock();
+			
 		}
 	}
     return 0;
@@ -1455,14 +1595,11 @@ UINT Write2File2(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			if(Count_[2] > 0){
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo2,Count_[2],"2");
+			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[2], &(Count_[2]),"2");
 
-				g_cs2.Lock();
-				ImageInfo::DelTail(pHead);
-				g_cs2.Unlock();
-				(Count_[2])--;
-			}
+			g_cs1.Lock();
+			ImageInfo::DelTail(pHead);
+			g_cs1.Unlock();
 		}
 	}
 
@@ -1485,14 +1622,11 @@ UINT Write2File3(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			if(Count_[3] > 0){
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo3,Count_[3],"1");
+			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[3], &(Count_[3]),"3");
 
-				g_cs3.Lock();
-				ImageInfo::DelTail(pHead);
-				g_cs3.Unlock();
-				(Count_[3])--;
-			}
+			g_cs1.Lock();
+			ImageInfo::DelTail(pHead);
+			g_cs1.Unlock();
 		}
 	}
 
@@ -1515,14 +1649,11 @@ UINT Write2File4(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			if(Count_[4] > 0){
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo4,Count_[4],"1");
+			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[4], &(Count_[4]),"4");
 
-				g_cs4.Lock();
-				ImageInfo::DelTail(pHead);
-				g_cs4.Unlock();
-				(Count_[4])--;
-			}
+			g_cs1.Lock();
+			ImageInfo::DelTail(pHead);
+			g_cs1.Unlock();
 		}
 	}
 
@@ -1545,14 +1676,11 @@ UINT Write2File5(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			if(Count_[5] > 0){
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo5,Count_[5],"1");
+			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[5], &(Count_[5]),"5");
 
-				g_cs5.Lock();
-				ImageInfo::DelTail(pHead);
-				g_cs5.Unlock();
-				(Count_[5])--;
-			}
+			g_cs1.Lock();
+			ImageInfo::DelTail(pHead);
+			g_cs1.Unlock();
 		}
 	}
 
@@ -1575,14 +1703,11 @@ UINT Write2File6(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			if(Count_[6] > 0){
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo6,Count_[6],"1");
+			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[6], &(Count_[6]),"6");
 
-				g_cs6.Lock();
-				ImageInfo::DelTail(pHead);
-				g_cs6.Unlock();
-				(Count_[6])--;
-			}
+			g_cs1.Lock();
+			ImageInfo::DelTail(pHead);
+			g_cs1.Unlock();
 		}
 	}
 
@@ -1605,14 +1730,11 @@ UINT Write2File7(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			if(Count_[7] > 0){
-				CFlowNavigatorDlg::SaveImage_CWJ(&(pTail->AqImageInfo),m_CnvImageInfo7,Count_[7],"1");
+			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[7], &(Count_[7]),"7");
 
-				g_cs7.Lock();
-				ImageInfo::DelTail(pHead);
-				g_cs7.Unlock();
-				(Count_[7])--;
-			}
+			g_cs1.Lock();
+			ImageInfo::DelTail(pHead);
+			g_cs1.Unlock();
 		}
 	}
 
@@ -1647,7 +1769,7 @@ void CFlowNavigatorDlg::OnContinuous()
 		Count_[i] = samDlg->Count;
 	}
 		
-	hThread[0] = ::AfxBeginThread(Write2File,head[0],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+	hThread[0] = ::AfxBeginThread(Write2File ,head[0],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 	hThread[1] = ::AfxBeginThread(Write2File1,head[1],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 	hThread[2] = ::AfxBeginThread(Write2File2,head[2],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 	hThread[3] = ::AfxBeginThread(Write2File3,head[3],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
@@ -1662,6 +1784,42 @@ void CFlowNavigatorDlg::OnSingleFrame()
 {
 	// TODO: 在此添加命令处理程序代码
 	b_isContinuous = FALSE;
+	SetSingleFrameValueDlg* setSingleDlg = new SetSingleFrameValueDlg;
+	if(IDCANCEL == setSingleDlg->DoModal())
+	{
+		return;
+	}
+
+	NODE_HANDLE hNode;
+	double d_val;
+	if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[0],"AcquisitionFrameRate",&hNode))
+	{
+		if(J_ST_SUCCESS != J_Node_GetValueDouble(hNode,TRUE,&d_val))	
+		{
+			AfxMessageBox(_T("未能正确获取相机帧率参数!"),MB_ICONINFORMATION);
+		}
+	}
+	else
+	{
+		AfxMessageBox(_T("未能正确获取相机帧率参数!"),MB_ICONINFORMATION);
+	}
+
+	Space_Frame[0] = Count_Space[0] * (int)d_val;
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		Copy_Space_Frame[i] = Space_Frame[0];
+		Copy_Count_Once[i]  = Count_Space[0];
+	}
+	b_isSingleFrame = TRUE;
+	hThread[0] = ::AfxBeginThread(Write2File ,head[0],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+	hThread[1] = ::AfxBeginThread(Write2File1,head[1],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+	hThread[2] = ::AfxBeginThread(Write2File2,head[2],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+	hThread[3] = ::AfxBeginThread(Write2File3,head[3],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+	hThread[4] = ::AfxBeginThread(Write2File4,head[4],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+	hThread[5] = ::AfxBeginThread(Write2File5,head[5],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+	hThread[6] = ::AfxBeginThread(Write2File6,head[6],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+	hThread[7] = ::AfxBeginThread(Write2File7,head[7],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
+
 }
 
 void CFlowNavigatorDlg::OnTimer(UINT_PTR nIDEvent)
@@ -1678,6 +1836,7 @@ void CFlowNavigatorDlg::OnClose()
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	//b_isContinuous = FALSE;//否则 存储线程不能正常退出，其中的临界区出现报错，中断
+	EndControl();
 	CloseFactoryAndCamera();
 	EnableControls();
 	GdiplusShutdown(gdiplusToken);
@@ -1730,6 +1889,8 @@ void CFlowNavigatorDlg::OnTest()
 	// TODO: 在此添加命令处理程序代码
 	mLink = FALSE;
 	mAdjust = FALSE;
+	b_isContinuous = FALSE;
+	b_isSingleFrame = FALSE;
 }
 
 void CFlowNavigatorDlg::OnCreateproj()

@@ -17,6 +17,7 @@
 #include "LinkImage.h"
 #include   <afxpriv.h> //T2A()可能用到
 #include "ErrorCodeList.h"
+#include "SetSingleFrameValueDlg.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -32,6 +33,11 @@
 #define K_INIT_HEIGH 2048
 
 #define MAX_IMG_COUNT 100
+
+
+extern int Count_Single[MAX_CAMERAS];//流场个数
+extern int Count_Once[MAX_CAMERAS];  //单次采集张数
+extern int Count_Space[MAX_CAMERAS]; //流场间隔
 
 // CFlowNavigatorDlg 对话框
 class CFlowNavigatorDlg : public CDialog
@@ -158,6 +164,10 @@ public:
 // 			const char* numCam,
 // 			const char* path = NULL, const char* fileName = NULL);
 
+	void  insertSingle(int* Count_Single, int* Count_Once, int* Space_Frame,
+		const int Copy_Space_Frame, const int CountOnce,
+		pImageNode* pImage, J_tIMAGE_INFO** pAqImageInfo, ImageInfo cls,  
+		pImageNode* pHead);
 
 	void EndControl(void);
 	void InitPathDir(CString dstDir, CString SubDir[], UINT_K length);//创建项目工程

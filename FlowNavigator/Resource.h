@@ -11,6 +11,7 @@
 #define IDD_DIALOG1                     130
 #define IDD_DIALOG2                     131
 #define IDD_DIALOG3                     133
+#define IDD_DIALOG_SINGLEFRAME          134
 #define IDC_SLIDER1                     1000
 #define IDC_CurExposure                 1001
 #define IDC_MinExposure                 1002
@@ -27,8 +28,10 @@
 #define IDC_CANCEL                      1014
 #define IDC_SampleTIme                  1015
 #define IDC_SAVESETUP                   1018
-#define IDC_BUTTON2                     1019
 #define IDC_LOADLASTSETUP               1019
+#define IDC_EDIT1                       1020
+#define IDC_EDIT2                       1021
+#define IDC_EDIT3                       1022
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -66,9 +69,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         32803
-#define _APS_NEXT_CONTROL_VALUE         1020
+#define _APS_NEXT_CONTROL_VALUE         1021
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

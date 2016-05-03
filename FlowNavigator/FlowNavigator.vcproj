@@ -395,6 +395,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SetSingleFrameValueDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\SetValue.cpp"
 				>
 			</File>
@@ -486,6 +490,10 @@
 			</File>
 			<File
 				RelativePath=".\Resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SetSingleFrameValueDlg.h"
 				>
 			</File>
 			<File
