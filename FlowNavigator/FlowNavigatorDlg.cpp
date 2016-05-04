@@ -34,6 +34,8 @@ int Copy_Count_Once[MAX_CAMERAS];
 int Space_Frame[MAX_CAMERAS]; //流场间隔*当前帧数
 int Copy_Space_Frame[MAX_CAMERAS];
 
+int Total_Frame[MAX_CAMERAS]; //一共所需采集张数
+
 BOOL b_isContinuous = FALSE;  //true:连续模式
 BOOL b_isSingleFrame = FALSE; //true:潮流
 CString m_CurrentProPath;     //保存当前项目路径
@@ -677,8 +679,8 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO * pAqImageInfo)
 }
 */
 int SaveImage(CString CurrentProPath, 
-			  J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo, int* Count,
-			  const char* numCam, 
+			  J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo,
+			  int* Count,const char* numCam, 
 			  const char* path = NULL, const char* fileName = NULL)
 {
 	if(*Count > 0)
@@ -690,7 +692,7 @@ int SaveImage(CString CurrentProPath,
 		}
 		else
 		{
-			CString tempPath = m_CurrentProPath + _T("原始数据");
+			CString tempPath = m_CurrentProPath + _T("\\原始数据");
 			int nLength = WideCharToMultiByte(CP_ACP, 0, tempPath, tempPath.GetLength(),
 				NULL, 0, NULL, NULL);
 			WideCharToMultiByte(CP_ACP, 0, tempPath, tempPath.GetLength(), path, nLength, NULL, NULL);
@@ -703,6 +705,36 @@ int SaveImage(CString CurrentProPath,
 
 	return 0;
 }
+int SaveImageBySign(BOOL bContinuous, BOOL bSingleFrame, 
+					int* Count_Continuous, int* Count_Single,
+					const char* numCamConti, const char* numCamSingle, 
+					CString CurrentProPath, J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo,
+					const char* path = NULL, const char* fileName = NULL)
+{
+	if (bContinuous)
+	{
+		SaveImage(CurrentProPath, pAqImageInfo, m_CnvImageInfo, Count_Continuous, numCamConti);
+
+		if (*Count_Continuous == 0)
+		{
+			AfxMessageBox(_T("连续模式采集完成"), MB_ICONINFORMATION);
+			return -1;
+		}
+	}
+	else if (bSingleFrame)
+	{
+		SaveImage(m_CurrentProPath, pAqImageInfo, m_CnvImageInfo, Count_Single, numCamSingle);
+
+		if (*Count_Single == 0)
+		{
+			AfxMessageBox(_T("潮流模式采集完成"), MB_ICONINFORMATION);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 int CFlowNavigatorDlg::SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo, int Count,
 									 const char* numCam, 
 									 const char* path, const char* fileName)
@@ -822,14 +854,14 @@ void DrawTextByCamSign(CWnd* pWnd, ShowView* pShowView, int recv, int lost, int 
 }
 void  CFlowNavigatorDlg::insertSingle(int* Count_Single, int* Count_Once, int* Space_Frame,
 									  const int Copy_Space_Frame, const int Copy_CountOnce,
-									  pImageNode* pImage, J_tIMAGE_INFO** pAqImageInfo, ImageInfo cls,  
+									  pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
 									  pImageNode* pHead)
 {
 	if (*Count_Single > 0)
 	{
 		if (*Count_Once > 0)
 		{
-			if(-1 == InsertHead(*pImage,*pAqImageInfo,cls,*pHead))
+			if(-1 == InsertHead(*pImage,pAqImageInfo,cls,*pHead))
 			{
 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
 				OnClose();
@@ -901,7 +933,7 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 			g_cs.Lock();
 			insertSingle(&(Count_Single[0]),&(Count_Once[0]), &(Space_Frame[0]),
 				Copy_Space_Frame[0],Copy_Count_Once[0],
-				&(pImage[0]), &pAqImageInfo, myImageInfo, &(head[0]));
+				&(pImage[0]), pAqImageInfo, myImageInfo, &(head[0]));
 			g_cs.Unlock();
 		}
 	}
@@ -1520,7 +1552,30 @@ UINT Write2File(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[0], &(Count_[0]),"0");
+			if(-1 == SaveImageBySign(b_isContinuous, b_isSingleFrame, &(Count_[0]), &(Total_Frame[0]),
+				"0", "0_", m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[0]))
+			{
+				g_cs.Lock();
+				ImageInfo::DelTail(pHead);
+				g_cs.Unlock();
+
+				//b_isContinuous = b_isSingleFrame = FALSE;
+				goto End;
+			}
+// 			if (b_isContinuous)
+// 			{
+// 				if (Count_[0] == 0)
+// 				{
+// 					AfxMessageBox(_T("连续模式采集完成"), MB_ICONINFORMATION);
+// 					goto End;
+// 				}
+// 				SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[0], &(Count_[0]),"0");
+// 			}
+// 			else if (b_isSingleFrame)
+// 			{
+// 				SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[0], &(Total_Frame[0]), "0_");
+// 			}
+
 // 			if(Count_[0] > 0)
 // 			{
 // 				char path[MAX_PATH]={0};
@@ -1546,9 +1601,9 @@ UINT Write2File(LPVOID param)
 		}
 
 		float end = clock();
-		TRACE("Write2File time %d: %lf\n",Count_[0],end-begin);
+		TRACE("Write2File time %d %d: %lf\n",Count_[0],Total_Frame[0],end-begin);
 	}
-
+End:
 	return 0;
 }
 
@@ -1568,7 +1623,17 @@ UINT Write2File1(LPVOID param)
 		else
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
-			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[1], &(Count_[1]),"1");
+
+			if(-1 == SaveImageBySign(b_isContinuous, b_isSingleFrame, &(Count_[1]), &(Total_Frame[1]),
+				"1", "1_", m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[1]))
+			{
+				g_cs.Lock();
+				ImageInfo::DelTail(pHead);
+				g_cs.Unlock();
+
+				b_isContinuous = b_isSingleFrame = FALSE;
+				goto End;
+			}
 
 			g_cs1.Lock();
 			ImageInfo::DelTail(pHead);
@@ -1576,6 +1641,7 @@ UINT Write2File1(LPVOID param)
 			
 		}
 	}
+End:
     return 0;
 } 
 UINT Write2File2(LPVOID param)
@@ -1595,14 +1661,23 @@ UINT Write2File2(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[2], &(Count_[2]),"2");
+			if(-1 == SaveImageBySign(b_isContinuous, b_isSingleFrame, &(Count_[2]), &(Total_Frame[2]),
+				"2", "2_", m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[2]))
+			{
+				g_cs.Lock();
+				ImageInfo::DelTail(pHead);
+				g_cs.Unlock();
+
+				b_isContinuous = b_isSingleFrame = FALSE;
+				goto End;
+			}
 
 			g_cs1.Lock();
 			ImageInfo::DelTail(pHead);
 			g_cs1.Unlock();
 		}
 	}
-
+End:
     return 0;
 } 
 UINT Write2File3(LPVOID param)
@@ -1622,14 +1697,23 @@ UINT Write2File3(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[3], &(Count_[3]),"3");
+			if(-1 == SaveImageBySign(b_isContinuous, b_isSingleFrame, &(Count_[3]), &(Total_Frame[3]),
+				"3", "3_", m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[3]))
+			{
+				g_cs.Lock();
+				ImageInfo::DelTail(pHead);
+				g_cs.Unlock();
+
+				b_isContinuous = b_isSingleFrame = FALSE;
+				goto End;
+			}
 
 			g_cs1.Lock();
 			ImageInfo::DelTail(pHead);
 			g_cs1.Unlock();
 		}
 	}
-
+End:
     return 0;
 } 
 UINT Write2File4(LPVOID param)
@@ -1649,14 +1733,23 @@ UINT Write2File4(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[4], &(Count_[4]),"4");
+			if(-1 == SaveImageBySign(b_isContinuous, b_isSingleFrame, &(Count_[4]), &(Total_Frame[4]),
+				"4", "4_", m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[4]))
+			{
+				g_cs.Lock();
+				ImageInfo::DelTail(pHead);
+				g_cs.Unlock();
+
+				b_isContinuous = b_isSingleFrame = FALSE;
+				goto End;
+			}
 
 			g_cs1.Lock();
 			ImageInfo::DelTail(pHead);
 			g_cs1.Unlock();
 		}
 	}
-
+End:
     return 0;
 } 
 UINT Write2File5(LPVOID param)
@@ -1676,14 +1769,23 @@ UINT Write2File5(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[5], &(Count_[5]),"5");
+			if(-1 == SaveImageBySign(b_isContinuous, b_isSingleFrame, &(Count_[5]), &(Total_Frame[5]),
+				"5", "5_", m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[5]))
+			{
+				g_cs.Lock();
+				ImageInfo::DelTail(pHead);
+				g_cs.Unlock();
+
+				b_isContinuous = b_isSingleFrame = FALSE;
+				goto End;
+			}
 
 			g_cs1.Lock();
 			ImageInfo::DelTail(pHead);
 			g_cs1.Unlock();
 		}
 	}
-
+End:
     return 0;
 } 
 UINT Write2File6(LPVOID param)
@@ -1703,14 +1805,23 @@ UINT Write2File6(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[6], &(Count_[6]),"6");
+			if(-1 == SaveImageBySign(b_isContinuous, b_isSingleFrame, &(Count_[6]), &(Total_Frame[6]),
+				"6", "6_", m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[6]))
+			{
+				g_cs.Lock();
+				ImageInfo::DelTail(pHead);
+				g_cs.Unlock();
+
+				b_isContinuous = b_isSingleFrame = FALSE;
+				goto End;
+			}
 
 			g_cs1.Lock();
 			ImageInfo::DelTail(pHead);
 			g_cs1.Unlock();
 		}
 	}
-
+End:
     return 0;
 } 
 UINT Write2File7(LPVOID param)
@@ -1730,14 +1841,23 @@ UINT Write2File7(LPVOID param)
 		{
 			(pHead->AqImageInfo).pImageBuffer = pHead->pImageBuffer;
 
-			SaveImage(m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[7], &(Count_[7]),"7");
+			if(-1 == SaveImageBySign(b_isContinuous, b_isSingleFrame, &(Count_[7]), &(Total_Frame[7]),
+				"7", "7_", m_CurrentProPath, &(pTail->AqImageInfo), m_CnvImageInfo[7]))
+			{
+				g_cs.Lock();
+				ImageInfo::DelTail(pHead);
+				g_cs.Unlock();
+
+				b_isContinuous = b_isSingleFrame = FALSE;
+				goto End;
+			}
 
 			g_cs1.Lock();
 			ImageInfo::DelTail(pHead);
 			g_cs1.Unlock();
 		}
 	}
-
+End:
     return 0;
 } 
 void CFlowNavigatorDlg::OnContinuous()
@@ -1808,7 +1928,8 @@ void CFlowNavigatorDlg::OnSingleFrame()
 	for (int i = 0; i < MAX_CAMERAS; i++)
 	{
 		Copy_Space_Frame[i] = Space_Frame[0];
-		Copy_Count_Once[i]  = Count_Space[0];
+		Copy_Count_Once[i]  = Count_Once[0];
+		Total_Frame[i]      = Count_Once[0] * Count_Single[0];
 	}
 	b_isSingleFrame = TRUE;
 	hThread[0] = ::AfxBeginThread(Write2File ,head[0],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);

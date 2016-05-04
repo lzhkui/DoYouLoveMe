@@ -166,7 +166,7 @@ public:
 
 	void  insertSingle(int* Count_Single, int* Count_Once, int* Space_Frame,
 		const int Copy_Space_Frame, const int CountOnce,
-		pImageNode* pImage, J_tIMAGE_INFO** pAqImageInfo, ImageInfo cls,  
+		pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
 		pImageNode* pHead);
 
 	void EndControl(void);

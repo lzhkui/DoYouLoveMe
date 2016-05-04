@@ -506,17 +506,9 @@ void CSetValue::OnBnClickedLoadlastsetup()
 	m_CurGain = _ttoi(lastGain);
 	m_CurFrame = _ttol(lastFrame);
 	UpdateData(FALSE);
-	if(m_hCam[0] != NULL)
-	{
-		if(J_ST_SUCCESS != SetValueInt_CWJ(m_hCam,NODE_NAME_EXPOSURE,(int64_t)m_CurExposure,m_CameraCount))
-		{
-			return;
-		}
-		if(J_ST_SUCCESS != SetValueInt_CWJ(m_hCam,NODE_NAME_GAIN,(int64_t)m_CurGain,m_CameraCount))
-		{
-			return;
-		}
-	}
+
+	//必须先设置帧率，否则若上次保存的曝光大于 当前默认帧率(相机打开时软件设置的)所能达到的最大值时，
+    //则曝光设置不成功_2016年5月4日13:15:35
 	NODE_HANDLE hNode;
 	if(m_hCam[0] != NULL)
 	{
@@ -532,6 +524,18 @@ void CSetValue::OnBnClickedLoadlastsetup()
 			}
 		}
 	}
+	if(m_hCam[0] != NULL)
+	{
+		if(J_ST_SUCCESS != SetValueInt_CWJ(m_hCam,NODE_NAME_EXPOSURE,(int64_t)m_CurExposure,m_CameraCount))
+		{
+			return;
+		}
+		if(J_ST_SUCCESS != SetValueInt_CWJ(m_hCam,NODE_NAME_GAIN,(int64_t)m_CurGain,m_CameraCount))
+		{
+			return;
+		}
+	}
+
 	mExpSliderCtrl.SetPos(m_CurExposure);
 	mGainSliderCtrl.SetPos(m_CurGain);
 	mFrameSliderCtrl.SetPos(m_CurFrame);
