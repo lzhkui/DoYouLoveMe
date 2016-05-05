@@ -78,4 +78,5 @@ public:
 		CSliderCtrl& mSlider, int* Min, int* Max);
 	void setInitValueMM(CSliderCtrl& mSlider, int& mMin, int& mMax,int Min, int Max);
 	afx_msg void OnBnClickedLoadlastsetup();
+	virtual BOOL OnInitDialog();
 };

@@ -57,6 +57,7 @@ public:
 	unsigned char *relateArr;
 
 	ShowView *showView;//用于实时显示
+	CButton* checkBt[MAX_CAMERAS];
 
 	//用于GDI+初始化函数
 private:
@@ -135,6 +136,8 @@ public:
 	afx_msg void OnOpenCamera();
 	afx_msg void OnCloseCamera();
 	afx_msg void OnQuit();
+	afx_msg void OnStartstream();
+
 	afx_msg void OnSetValues();
 	afx_msg void OnDestroy();
 	afx_msg void On4Col2Line();
@@ -168,7 +171,13 @@ public:
 		const int Copy_Space_Frame, const int CountOnce,
 		pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
 		pImageNode* pHead);
+	void insertBySign(BOOL bContinuous, BOOL bSingleFrame, CCriticalSection *pCs, int* Count,
+		int* Count_Single, int* Count_Once, int* Space_Frame,
+		const int Copy_Space_Frame, const int Copy_CountOnce,
+		pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
+		pImageNode* pHead);
 
 	void EndControl(void);
 	void InitPathDir(CString dstDir, CString SubDir[], UINT_K length);//创建项目工程
+
 };
