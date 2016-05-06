@@ -49,9 +49,13 @@ CWaitLoading *dlgWait;        //进度条等待对话框
 UINT CreateWaitDlg(LPVOID pParam);
 //UINT Write2File(LPVOID param);
 
-
 UINT Check_ID[8] = {IDC_CheckBT1,IDC_CheckBT2,IDC_CheckBT3,IDC_CheckBT4,
 IDC_CheckBT5,IDC_CheckBT6,IDC_CheckBT7,IDC_CheckBT8};
+
+#define DOUBLECLK_IN 0
+#define DOUBLECLK_OUT 1
+int DoubleClk = DOUBLECLK_IN;
+int CheckCamNum = 0;
 
 #define  KDebug 0
 
@@ -112,6 +116,17 @@ void DestroyCheckCamBt(CButton *bt[], UINT ID[])
 	for (int i = 0; i < 8; i++)
 	{
 		bt[i]->DestroyWindow();
+	}
+}
+
+void EnableCheckCamBt(CWnd * pWnd, UINT ID[], BOOL enable)
+{
+	for (int i = 0; i < 8; i++)
+	{
+		if(pWnd->GetDlgItem(ID[i]) != NULL)
+		{
+			pWnd->GetDlgItem(ID[i])->EnableWindow(enable);
+		}
 	}
 }
 
@@ -178,6 +193,7 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	m_pAdjustCls = (pAdajustCLs)malloc(sizeof(AdajustCLs));//校正线程传入参数
 	showView = new ShowView(this); 
 	m_CurrentProPath = DEFAULT_PATH;
+	checkShow = new CheckToShow;
 
 	// Initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
@@ -239,6 +255,7 @@ CFlowNavigatorDlg::~CFlowNavigatorDlg()
 {
 	delete bmpinfo;
 	delete showView;
+	delete checkShow;
 	if (m_pAdjustCls != NULL)
 	{
 		free(m_pAdjustCls);
@@ -283,6 +300,10 @@ BEGIN_MESSAGE_MAP(CFlowNavigatorDlg, CDialog)
 	ON_COMMAND(ID_Test, &CFlowNavigatorDlg::OnTest)
 	ON_COMMAND(ID_CreateProj, &CFlowNavigatorDlg::OnCreateproj)
 	ON_COMMAND(ID_StartStream, &CFlowNavigatorDlg::OnStartstream)
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONDBLCLK()
+	ON_COMMAND(ID_CloseStream, &CFlowNavigatorDlg::OnCloseStream)
+	ON_COMMAND(ID_Reboot, &CFlowNavigatorDlg::OnReboot)
 END_MESSAGE_MAP()
 
 
@@ -929,6 +950,15 @@ void DrawTextByCamSign(CWnd* pWnd, ShowView* pShowView, int recv, int lost, int 
 	pDrawText.graph = NULL;
 	pWnd->ReleaseDC(pDc);
 }
+void DrawTextLocate(CheckToShow* checkShow, int sign, CWnd* pWnd, ShowView* pShowView, int recv, int lost)
+{
+	CRect rect;
+	pWnd->GetClientRect(&rect);
+	int Weight      = checkShow->ReturnWeight(sign);
+	int SrcWidth    = checkShow->getWidth(rect);
+	int startHeight = checkShow->getStartHeight(rect);
+	DrawTextByCamSign(pWnd,pShowView,recv,lost,Weight*SrcWidth,startHeight);
+}
 void  CFlowNavigatorDlg::insertSingle(int* Count_Single, int* Count_Once, int* Space_Frame,
 									  const int Copy_Space_Frame, const int Copy_CountOnce,
 									  pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
@@ -1023,45 +1053,49 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 	} 
 	else 
 	{
-//End:
+		//End:
 		if(CtrLine == 42)
 		{
 			LiveView_Cwj(pAqImageInfo,bmpinfo,0,0,rect.Width()/4,rect.Height()/2,HALFTONE);
 		}
 		else if (CtrLine == 81)
 		{
-			LiveView_Cwj(pAqImageInfo,bmpinfo,0,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			if(DoubleClk == DOUBLECLK_IN){ 
+				LiveView_Cwj(pAqImageInfo,bmpinfo,0,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			}else if(DoubleClk == DOUBLECLK_OUT){
+				LiveViewWnd(this,checkShow,0,pAqImageInfo,bmpinfo,HALFTONE);
+			}
 		}	
 		insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[0], &Count[0],
 			&(Count_Single[0]),&(Count_Once[0]), &(Space_Frame[0]),
 			Copy_Space_Frame[0],Copy_Count_Once[0],
 			&(pImage[0]), pAqImageInfo, myImageInfo, &(head[0]));
-// 		if(b_isContinuous)
-// 		{
-// 			if (Count > 0)
-// 			{
-// 				float begin = clock();
-// 				g_cs.Lock();
-// 				//接收的数据插链表头，从链表尾用其他线程读，读完删除节点
-// 				if(-1 == InsertHead(pImage[0],pAqImageInfo,myImageInfo,head[0]))
-// 				{
-// 					AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
-// 					OnClose();
-// 				}
-// 				Count--;
-// 				g_cs.Unlock();
-// 				float end = clock();
-// 				TRACE("InsertHead:%f\n",end - begin);//2毫秒
-// 			}
-// 		}
-// 		else if (b_isSingleFrame)
-// 		{
-// 			g_cs.Lock();
-// 			insertSingle(&(Count_Single[0]),&(Count_Once[0]), &(Space_Frame[0]),
-// 				Copy_Space_Frame[0],Copy_Count_Once[0],
-// 				&(pImage[0]), pAqImageInfo, myImageInfo, &(head[0]));
-// 			g_cs.Unlock();
-// 		}
+		// 		if(b_isContinuous)
+		// 		{
+		// 			if (Count > 0)
+		// 			{
+		// 				float begin = clock();
+		// 				g_cs.Lock();
+		// 				//接收的数据插链表头，从链表尾用其他线程读，读完删除节点
+		// 				if(-1 == InsertHead(pImage[0],pAqImageInfo,myImageInfo,head[0]))
+		// 				{
+		// 					AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
+		// 					OnClose();
+		// 				}
+		// 				Count--;
+		// 				g_cs.Unlock();
+		// 				float end = clock();
+		// 				TRACE("InsertHead:%f\n",end - begin);//2毫秒
+		// 			}
+		// 		}
+		// 		else if (b_isSingleFrame)
+		// 		{
+		// 			g_cs.Lock();
+		// 			insertSingle(&(Count_Single[0]),&(Count_Once[0]), &(Space_Frame[0]),
+		// 				Copy_Space_Frame[0],Copy_Count_Once[0],
+		// 				&(pImage[0]), pAqImageInfo, myImageInfo, &(head[0]));
+		// 			g_cs.Unlock();
+		// 		}
 	}
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
@@ -1081,28 +1115,32 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 	}
 	else if(CtrLine == 81)
 	{
-		DrawTextByCamSign(this, showView, RecvFrame[0], iLostFrames, 0, showStartHeight);
+		if(DoubleClk == DOUBLECLK_IN){
+			DrawTextByCamSign(this, showView, RecvFrame[0], iLostFrames, 0, showStartHeight);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			DrawTextLocate(checkShow,0,this,showView,RecvFrame[0],iLostFrames);
+		}
 	}
 	//Graphics g(this->GetDC()->GetSafeHdc());
-// 	CDC *pDc = this->GetDC();
-// 	HDC hdc = pDc->GetSafeHdc();
-// 	st_DrawText pDrawText;
-// 	pDrawText.graph = Graphics::FromHDC(hdc)/*::new Graphics(hdc)*/;//这里用new delete就报错了
-// 	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
-// 	pDrawText.a = 255;
-// 	pDrawText.r = 255;
-// 	pDrawText.g = 0;
-// 	pDrawText.b = 0;
-// 	pDrawText.pWnd = this;
-// 	pDrawText.X = 0;
-// 	pDrawText.Y = 0;
-// 	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame[0],iLostFrames);
-// 
-// 	showView->DrawText_k(&pDrawText);
-// 
-// 	delete pDrawText.graph;
-// 	pDrawText.graph = NULL;
-// 	ReleaseDC(pDc);
+	// 	CDC *pDc = this->GetDC();
+	// 	HDC hdc = pDc->GetSafeHdc();
+	// 	st_DrawText pDrawText;
+	// 	pDrawText.graph = Graphics::FromHDC(hdc)/*::new Graphics(hdc)*/;//这里用new delete就报错了
+	// 	pDrawText.Mode = TextRenderingHintClearTypeGridFit;// Set the text rendering for Cleartype
+	// 	pDrawText.a = 255;
+	// 	pDrawText.r = 255;
+	// 	pDrawText.g = 0;
+	// 	pDrawText.b = 0;
+	// 	pDrawText.pWnd = this;
+	// 	pDrawText.X = 0;
+	// 	pDrawText.Y = 0;
+	// 	pDrawText.showStr.Format(_T("接收%d 丢%lu"), RecvFrame[0],iLostFrames);
+	// 
+	// 	showView->DrawText_k(&pDrawText);
+	// 
+	// 	delete pDrawText.graph;
+	// 	pDrawText.graph = NULL;
+	// 	ReleaseDC(pDc);
 End:
 	float end = clock();
 	TRACE("LiveView coast time = %f\n",end - begin);
@@ -1137,14 +1175,20 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 	} 
 	else
 	{
-//End1:
+		//End1:
 		if(CtrLine == 42)
 		{
 			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4,0,rect.Width()/4,rect.Height()/2,HALFTONE);
 		}
 		else if (CtrLine == 81)
 		{
-			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			if(DoubleClk == DOUBLECLK_IN){ 
+				LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			}else if(DoubleClk == DOUBLECLK_OUT){
+				LiveViewWnd(this,checkShow,1,pAqImageInfo,bmpinfo,HALFTONE);
+			}
+
+			//LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
 		}
 		if(b_isContinuous)
 		{
@@ -1174,8 +1218,12 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 		DrawTextByCamSign(this, showView, RecvFrame[1], iLostFrames, rect.Width() / 4, 0);
 	}
 	else if (CtrLine == 81)
-	{
-		DrawTextByCamSign(this, showView, RecvFrame[1], iLostFrames, rect.Width() / 8, showStartHeight);
+	{	
+		if(DoubleClk == DOUBLECLK_IN){
+			DrawTextByCamSign(this, showView, RecvFrame[1], iLostFrames, rect.Width() / 8 * 1, showStartHeight);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			DrawTextLocate(checkShow,1,this,showView,RecvFrame[1],iLostFrames);
+		}
 	}
 
 End:
@@ -1184,9 +1232,12 @@ End:
 
 void CFlowNavigatorDlg::StreamCBFunc2(J_tIMAGE_INFO * pAqImageInfo)
 {	
-	if((FALSE == isCamBtCheck(Check_ID[2], this)) || CtrLine == 0)
+	if(GetDlgItem(Check_ID[2]) != NULL)
 	{
-		goto End;
+		if((FALSE == isCamBtCheck(Check_ID[2], this)) || CtrLine == 0)
+		{
+			goto End;
+		}
 	}
 	if(CtrLine == 0)
 	{
@@ -1200,11 +1251,15 @@ void CFlowNavigatorDlg::StreamCBFunc2(J_tIMAGE_INFO * pAqImageInfo)
 
 	if (CtrLine == 42)
 	{
-	    LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/2,0,rect.Width()/4,rect.Height()/2,HALFTONE);
+		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/2,0,rect.Width()/4,rect.Height()/2,HALFTONE);
 	}
 	else if (CtrLine == 81)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*2,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+		if(DoubleClk == DOUBLECLK_IN){ 
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*2,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			LiveViewWnd(this,checkShow,2,pAqImageInfo,bmpinfo,HALFTONE);
+		}
 	}
 	if(b_isContinuous)
 	{
@@ -1234,16 +1289,21 @@ void CFlowNavigatorDlg::StreamCBFunc2(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if(CtrLine == 81)
 	{
-		DrawTextByCamSign(this, showView, RecvFrame[2], iLostFrames, rect.Width()/ 8 * 2, showStartHeight);
-	}
+		if(DoubleClk == DOUBLECLK_IN){
+			DrawTextByCamSign(this, showView, RecvFrame[2], iLostFrames, rect.Width() / 8 * 2, showStartHeight);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			DrawTextLocate(checkShow,2,this,showView,RecvFrame[2],iLostFrames);
+		}	}
 End:
 	;
 }
 void CFlowNavigatorDlg::StreamCBFunc3(J_tIMAGE_INFO * pAqImageInfo)
 {
-	if((FALSE == isCamBtCheck(Check_ID[3], this)) || CtrLine == 0)
-	{
-		goto End;
+	if(GetDlgItem(Check_ID[3]) != NULL){
+		if((FALSE == isCamBtCheck(Check_ID[3], this)) || CtrLine == 0)
+		{
+			goto End;
+		}
 	}
 	if(CtrLine == 0)
 	{
@@ -1257,12 +1317,15 @@ void CFlowNavigatorDlg::StreamCBFunc3(J_tIMAGE_INFO * pAqImageInfo)
 
 	if(CtrLine == 42)
 	{
-        LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4*3,0,rect.Width()/4,rect.Height()/2,HALFTONE);
+		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4*3,0,rect.Width()/4,rect.Height()/2,HALFTONE);
 	}
 	else if (CtrLine == 81)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*3,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-	}
+		if(DoubleClk == DOUBLECLK_IN){ 
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*3,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			LiveViewWnd(this,checkShow,3,pAqImageInfo,bmpinfo,HALFTONE);
+		}	}
 	if(b_isContinuous)
 	{
 		if(Count3 > 0){
@@ -1291,16 +1354,21 @@ void CFlowNavigatorDlg::StreamCBFunc3(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if(CtrLine == 81)
 	{
-		DrawTextByCamSign(this, showView, RecvFrame[3], iLostFrames, rect.Width() / 8 * 3, showStartHeight);
-	}
+		if(DoubleClk == DOUBLECLK_IN){
+			DrawTextByCamSign(this, showView, RecvFrame[3], iLostFrames, rect.Width() / 8 * 3, showStartHeight);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			DrawTextLocate(checkShow,3,this,showView,RecvFrame[3],iLostFrames);
+		}	}
 End:
 	;
 }
 void CFlowNavigatorDlg::StreamCBFunc4(J_tIMAGE_INFO * pAqImageInfo)
 {
-	if((FALSE == isCamBtCheck(Check_ID[4], this)) || CtrLine == 0)
-	{
-		goto End;
+	if(GetDlgItem(Check_ID[4]) != NULL){
+		if((FALSE == isCamBtCheck(Check_ID[4], this)) || CtrLine == 0)
+		{
+			goto End;
+		}
 	}
 	if(CtrLine == 0)
 	{
@@ -1318,8 +1386,11 @@ void CFlowNavigatorDlg::StreamCBFunc4(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if (CtrLine == 81)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*4,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-	}
+		if(DoubleClk == DOUBLECLK_IN){ 
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*4,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			LiveViewWnd(this,checkShow,4,pAqImageInfo,bmpinfo,HALFTONE);
+		}	}
 	if(b_isContinuous)
 	{
 		if(Count4 > 0){
@@ -1348,17 +1419,22 @@ void CFlowNavigatorDlg::StreamCBFunc4(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if(CtrLine == 81)
 	{
-		DrawTextByCamSign(this, showView, RecvFrame[3], iLostFrames, rect.Width() / 8 * 4, showStartHeight);
-	}
+		if(DoubleClk == DOUBLECLK_IN){
+			DrawTextByCamSign(this, showView, RecvFrame[5], iLostFrames, rect.Width() / 8 * 5, showStartHeight);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			DrawTextLocate(checkShow,5,this,showView,RecvFrame[5],iLostFrames);
+		}	}
 
 End:
 	;
 }
 void CFlowNavigatorDlg::StreamCBFunc5(J_tIMAGE_INFO * pAqImageInfo)
 {
-	if((FALSE == isCamBtCheck(Check_ID[5], this)) || CtrLine == 0)
-	{
-		goto End;
+	if(GetDlgItem(Check_ID[5]) != NULL){
+		if((FALSE == isCamBtCheck(Check_ID[5], this)) || CtrLine == 0)
+		{
+			goto End;
+		}
 	}
 	if(CtrLine == 0)
 	{
@@ -1376,8 +1452,11 @@ void CFlowNavigatorDlg::StreamCBFunc5(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if (CtrLine == 81)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*5,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-	}
+		if(DoubleClk == DOUBLECLK_IN){ 
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*5,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			LiveViewWnd(this,checkShow,5,pAqImageInfo,bmpinfo,HALFTONE);
+		}	}
 	if(b_isContinuous)
 	{
 		if(Count5 > 0){
@@ -1406,16 +1485,21 @@ void CFlowNavigatorDlg::StreamCBFunc5(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if(CtrLine == 81)
 	{
-		DrawTextByCamSign(this, showView, RecvFrame[5], iLostFrames, rect.Width() / 8 * 5, showStartHeight);
-	}
+		if(DoubleClk == DOUBLECLK_IN){
+			DrawTextByCamSign(this, showView, RecvFrame[5], iLostFrames, rect.Width() / 8 * 5, showStartHeight);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			DrawTextLocate(checkShow,5,this,showView,RecvFrame[5],iLostFrames);
+		}	}
 End:
 	;
 }
 void CFlowNavigatorDlg::StreamCBFunc6(J_tIMAGE_INFO * pAqImageInfo)
 {
-	if((FALSE == isCamBtCheck(Check_ID[6], this)) || CtrLine == 0)
-	{
-		goto End;
+	if(GetDlgItem(Check_ID[6]) != NULL){
+		if((FALSE == isCamBtCheck(Check_ID[6], this)) || CtrLine == 0)
+		{
+			goto End;
+		}
 	}
 	if(CtrLine == 0)
 	{
@@ -1433,8 +1517,11 @@ void CFlowNavigatorDlg::StreamCBFunc6(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if (CtrLine == 81) 
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*6,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-	}
+		if(DoubleClk == DOUBLECLK_IN){ 
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*6,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			LiveViewWnd(this,checkShow,6,pAqImageInfo,bmpinfo,HALFTONE);
+		}	}
 	if(b_isContinuous)
 	{
 		if(Count6 > 0){
@@ -1462,16 +1549,22 @@ void CFlowNavigatorDlg::StreamCBFunc6(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if(CtrLine == 81)
 	{
-		DrawTextByCamSign(this, showView, RecvFrame[6], iLostFrames, rect.Width() / 8 * 6, showStartHeight);
+		if(DoubleClk == DOUBLECLK_IN){
+			DrawTextByCamSign(this, showView, RecvFrame[6], iLostFrames, rect.Width() / 8 * 6, showStartHeight);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			DrawTextLocate(checkShow,6,this,showView,RecvFrame[6],iLostFrames);
+		}	
 	}
 End:
 	;
 }
 void CFlowNavigatorDlg::StreamCBFunc7(J_tIMAGE_INFO * pAqImageInfo)
 {
-	if((FALSE == isCamBtCheck(Check_ID[7], this)) || CtrLine == 0)
-	{
-		goto End;
+	if(GetDlgItem(Check_ID[7]) != NULL){
+		if((FALSE == isCamBtCheck(Check_ID[7], this)) || CtrLine == 0)
+		{
+			goto End;
+		}
 	}
 	if(CtrLine == 0)
 	{
@@ -1489,8 +1582,11 @@ void CFlowNavigatorDlg::StreamCBFunc7(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if (CtrLine == 81)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*7,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-	}
+		if(DoubleClk == DOUBLECLK_IN){ 
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*7,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			LiveViewWnd(this,checkShow,7,pAqImageInfo,bmpinfo,HALFTONE);
+		}	}
 	if(b_isContinuous)
 	{
 		if(Count7 > 0){
@@ -1518,10 +1614,27 @@ void CFlowNavigatorDlg::StreamCBFunc7(J_tIMAGE_INFO * pAqImageInfo)
 	}
 	else if(CtrLine == 81)
 	{
-		DrawTextByCamSign(this, showView, RecvFrame[7], iLostFrames, rect.Width() / 8 * 7, showStartHeight);
-	}
+		if(DoubleClk == DOUBLECLK_IN){
+			DrawTextByCamSign(this, showView, RecvFrame[7], iLostFrames, rect.Width() / 8 * 7, showStartHeight);
+		}else if(DoubleClk == DOUBLECLK_OUT){
+			DrawTextLocate(checkShow,7,this,showView,RecvFrame[7],iLostFrames);
+		}		}
 End:
 	;
+}
+
+void CFlowNavigatorDlg::LiveViewWnd(CWnd* pWnd, CheckToShow* checkShow, int sign,
+									J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,int nStretchMode)
+{
+	CRect rect;
+	pWnd->GetClientRect(&rect);
+
+	int Weight      = checkShow->ReturnWeight(sign);
+	int startHeight = checkShow->getStartHeight(rect);
+	int SrcWidth    = checkShow->getWidth(rect);
+	int SrcHeight   = checkShow->getHeight(rect);
+
+	LiveView_Cwj(pAqImageInfo, bmpinfo, Weight*SrcWidth, startHeight, SrcWidth, SrcHeight);
 }
 void CFlowNavigatorDlg::LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,
 									 int x,int y,int scaleX,int scaleY,int nStretchMode)
@@ -1626,6 +1739,8 @@ void CFlowNavigatorDlg::EnableControls()
 	{
 		RecvFrame[i] = 0;
 	}
+	CtrLine = 0;
+	DoubleClk =DOUBLECLK_IN;
 }
 
 void CFlowNavigatorDlg::ShowErrorMsg(CString message, J_STATUS_TYPE error)
@@ -1691,11 +1806,13 @@ void CFlowNavigatorDlg::OnCloseCamera()
 {
 	// TODO: 在此添加命令处理程序代码
 	EnableControls();
+	OnCloseStream();
 	if(GetDlgItem(Check_ID[0]) != NULL)
 	{
 		DestroyCheckCamBt(checkBt, Check_ID);
 	}
 	CloseFactoryAndCamera();
+	Invalidate(TRUE);
 
 	bt_on = FALSE;
 	CMenu * pMenu = GetMenu();
@@ -2360,5 +2477,101 @@ void CFlowNavigatorDlg::InitPathDir(CString dstDir, CString SubDir[], UINT_K len
 void CFlowNavigatorDlg::OnStartstream()
 {
 	// TODO: 在此添加命令处理程序代码
+	if (m_hCam[0] == NULL)
+	{
+		AfxMessageBox(_T("请先打开系统（系统->打开系统）!"));
+		return;
+	}
 	On8col1line();
+	CMenu * pMenu = GetMenu();
+	pMenu->EnableMenuItem(ID_StartStream,TRUE);
+	EnableCheckCamBt(this, Check_ID, TRUE);
+}
+
+void CFlowNavigatorDlg::OnCloseStream()
+{
+	// TODO: 在此添加命令处理程序代码
+	On8col1line();
+	CMenu* pMenu =GetMenu();
+	pMenu->EnableMenuItem(ID_StartStream,FALSE);
+	EnableCheckCamBt(this,Check_ID,FALSE);
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		RecvFrame[i] = 0;
+	}
+}
+
+void CFlowNavigatorDlg::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	CDialog::OnLButtonDown(nFlags, point);
+}
+
+//客户区点击有效
+void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	CDialog::OnLButtonDblClk(nFlags, point);
+	TRACE("left bt double clk!\n");
+
+	//能改变DoubleClk == DOUBLECLK_OUT 的只有 后面的if
+	if (DoubleClk == DOUBLECLK_OUT)
+	{
+		DoubleClk = DOUBLECLK_IN;
+		//On8col1line();
+		//UpdateWindow();
+		for(int i = 0; i < MAX_CAMERAS; i++)
+		{
+			GetDlgItem(Check_ID[i])->EnableWindow(TRUE);
+		}
+
+		Invalidate(TRUE);
+		return;
+	}
+
+	if(m_hCam[0] != NULL && (GetDlgItem(Check_ID[0]) != NULL))
+	{
+		if (DoubleClk == DOUBLECLK_IN)
+		{
+			DoubleClk = DOUBLECLK_OUT;
+			//DestroyCheckCamBt(checkBt, Check_ID);
+		}
+// 		else if (DoubleClk == DOUBLECLK_OUT)
+// 		{
+// 			DoubleClk = DOUBLECLK_IN;
+// 		}
+	}
+	else
+	{
+		//此时代表没有完成 打开系统->打开采集终端 操作
+		return;
+	}
+
+	int start = -1;
+	int sign  = -1;
+	CheckCamNum = 0;
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		if (checkBt[i]->GetCheck())
+		{
+			if(sign == -1)
+			{
+				start = i;
+				sign  = 0;
+			}
+			CheckCamNum++;
+		}
+		GetDlgItem(Check_ID[i])->EnableWindow(FALSE);
+	}
+
+	checkShow->setNum(CheckCamNum);
+	checkShow->setStart(start);
+}
+
+void CFlowNavigatorDlg::OnReboot()
+{
+	// TODO: 在此添加命令处理程序代码
+	OnCloseCamera();
 }

@@ -367,6 +367,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CheckToShow.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CSetSampleDlg.cpp"
 				>
 			</File>
@@ -466,6 +470,10 @@
 			</File>
 			<File
 				RelativePath=".\BuildDir.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CheckToShow.h"
 				>
 			</File>
 			<File

@@ -18,6 +18,7 @@
 #include   <afxpriv.h> //T2A()可能用到
 #include "ErrorCodeList.h"
 #include "SetSingleFrameValueDlg.h"
+#include "CheckToShow.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -56,9 +57,10 @@ public:
 	pAdajustCLs m_pAdjustCls;
 	unsigned char *relateArr;
 
-	ShowView *showView;//用于实时显示
+	ShowView *showView;     //用于实时显示
 	CButton* checkBt[MAX_CAMERAS];
 
+	CheckToShow* checkShow; //双击后的显示问题
 	//用于GDI+初始化函数
 private:
 	GdiplusStartupInput gdiplusStartupInput;
@@ -98,6 +100,9 @@ public:
 	void StreamCBFunc5(J_tIMAGE_INFO * pAqImageInfo);
 	void StreamCBFunc6(J_tIMAGE_INFO * pAqImageInfo);
 	void StreamCBFunc7(J_tIMAGE_INFO * pAqImageInfo);
+
+	void LiveViewWnd(CWnd* pWnd, CheckToShow* checkShow, int sign,
+		J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,int nStretchMode);
 
 	void LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,
 		int x,int y,int scaleX,int scaleY,
@@ -180,4 +185,8 @@ public:
 	void EndControl(void);
 	void InitPathDir(CString dstDir, CString SubDir[], UINT_K length);//创建项目工程
 
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
+	afx_msg void OnCloseStream();
+	afx_msg void OnReboot();
 };

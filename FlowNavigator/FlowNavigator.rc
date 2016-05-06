@@ -292,12 +292,13 @@ BEGIN
     POPUP "系统"
     BEGIN
         MENUITEM "打开系统",                        ID_OpenCamera
+        MENUITEM "关闭系统",                        ID_CloseCamera
         MENUITEM "重启系统",                        ID_Reboot
         MENUITEM "打开采集终端",                      ID_StartStream
-        MENUITEM "关闭采集终端",                      ID_CloseCamera
+        MENUITEM "关闭采集终端",                      ID_CloseStream
         MENUITEM "退出",                          ID_Quit
     END
-    POPUP "项目参数设置"
+    POPUP "设置"
     BEGIN
         MENUITEM "参数设置",                        ID_32775
         POPUP "采集模式"
