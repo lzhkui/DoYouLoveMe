@@ -1,9 +1,12 @@
 #include "StdAfx.h"
 #include "AdjustThreadFunc.h"
+#include "FNGlobal.h"
 
 BOOL mAdjust = FALSE; // true代表点击了图像校正
 BOOL AdjustING = FALSE;
 
+unsigned char* targetArray[MAX_CAMERAS] = {NULL};
+unsigned char* pair_targetArray[MAX_CAMERAS][2] = {{NULL,NULL}};
 
 AdjustThreadFunc::AdjustThreadFunc(void)
 {
@@ -13,15 +16,42 @@ AdjustThreadFunc::~AdjustThreadFunc(void)
 {
 }
 
+unsigned char** GetMalloc_unChar(int size)
+{
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		if (targetArray[i] == NULL)
+		{
+			targetArray[i] = (unsigned char*)malloc(size);
+		}
+	}
+
+	return targetArray;
+}
+
+
 UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 {
 	pAdajustCLs m_pAdjustCls = (pAdajustCLs)param;
 
 	//J_tIMAGE_INFO * pAqImageInfo[pAdajustCLs->Count];
-	unsigned char* targetArray[MAX_CAMERAS];
+
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0; j < m_pAdjustCls->Count; j++)
+		{
+			if (pair_targetArray[j][i] == NULL)
+			{
+				pair_targetArray[j][i] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[j])->getImageSize());
+			}
+		}
+	}
 	for (int m = 0; m < m_pAdjustCls->Count; m++)
 	{
-		targetArray[m] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
+		GetMalloc_unChar((m_pAdjustCls->adjustImage_C[m])->getImageSize());
+		//targetArray[m] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
+		//pair_targetArray[m][0] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
+		//pair_targetArray[m][1] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
 	}
 	for (int i = 0 ; i < m_pAdjustCls->Count; i++)
 	{
@@ -35,7 +65,6 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 		TRACE("begin adjust!\n");
 		TRACE("iBlockId = %d,pImage = %d\n",(m_pAdjustCls->adjustImage_C[0])->getImageInfo()->iBlockId,
 			*((m_pAdjustCls->adjustImage_C[0])->getImageInfo()->pImageBuffer));
-
 		//
 		AdjustING = TRUE;
 		for (int j = 0; j < m_pAdjustCls->Count; j++)
@@ -48,6 +77,20 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 		}
 		AdjustING = FALSE;
 
+		for (int i = 0; i < MAX_CAMERAS; i++)
+		{
+			if (Pair[i] == 0)
+			{
+
+				for (int n = 0; n < (m_pAdjustCls->adjustImage_C[i])->getImageSize(); n++)
+				{
+					*(pair_targetArray[i][0] + n) = *((m_pAdjustCls->adjustImage_C[i])->getImageInfo(0)->pImageBuffer + n);
+				}
+
+				Pair[i] = 2;
+			}
+		}
+	
 		CRect rect;
 		m_pAdjustCls->pWnd->GetClientRect(&rect);
 

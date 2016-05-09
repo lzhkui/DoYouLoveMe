@@ -1050,6 +1050,11 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 		{
 			adjustImage_C[0]->setImageInfo(pAqImageInfo);
 		}
+		if (Pair[0] > 0)
+		{
+			adjustImage_C[0]->setPairImageInfo(&Pair[0], pAqImageInfo);
+			(Pair[0])--;
+		}
 	} 
 	else 
 	{
@@ -1171,6 +1176,11 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 		if (!AdjustING)
 		{
 			adjustImage_C[1]->setImageInfo(pAqImageInfo);
+		}
+		if (Pair[1] > 0)
+		{
+			adjustImage_C[1]->setPairImageInfo(&Pair[1], pAqImageInfo);
+			(Pair[1])--;
 		}
 	} 
 	else

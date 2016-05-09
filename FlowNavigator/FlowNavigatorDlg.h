@@ -19,6 +19,7 @@
 #include "ErrorCodeList.h"
 #include "SetSingleFrameValueDlg.h"
 #include "CheckToShow.h"
+#include "FNGlobal.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"

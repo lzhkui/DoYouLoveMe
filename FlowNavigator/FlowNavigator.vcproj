@@ -391,6 +391,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\FNGlobal.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ImageInfo.cpp"
 				>
 			</File>
@@ -486,6 +490,10 @@
 			</File>
 			<File
 				RelativePath=".\FlowNavigatorDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\FNGlobal.h"
 				>
 			</File>
 			<File
