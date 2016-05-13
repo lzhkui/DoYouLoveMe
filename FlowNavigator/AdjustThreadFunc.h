@@ -2,7 +2,7 @@
 #include "AdjustImage.h"
 #include "ShowView.h"
 #include "LinkImage.h"
-
+#include "CheckToShow.h"
 #define MAX_CAMERAS 8
 
 //Í¼ÏñÐ£Õý
@@ -16,6 +16,8 @@ struct st_ValidCls
 	st_IMAGE_INFO *pTwoImageInfo;
 
 	unsigned int Count;
+
+	CheckToShow* checkShow;
 };
 typedef struct st_ValidCls AdajustCLs;
 typedef struct st_ValidCls* pAdajustCLs;
@@ -28,6 +30,8 @@ class AdjustThreadFunc
 public:
 	AdjustThreadFunc(void);
 	~AdjustThreadFunc(void);
+	static void GetNew_float(int size);
 
 	static UINT AdjustIm(LPVOID param);
+	
 };

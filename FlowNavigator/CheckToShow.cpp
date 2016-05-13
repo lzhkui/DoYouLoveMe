@@ -24,7 +24,7 @@ int CheckToShow::ReturnWeight(int sign)
 		return LESS_SIGN;
 	}
 
-	if (sign > mStart + this->mNum)
+	if (sign > (mStart + this->mNum))
 	{
 		return OVER_SING;
 	}
@@ -35,6 +35,10 @@ int CheckToShow::ReturnWeight(int sign)
 void CheckToShow::setNum(int num)
 {
 	this->mNum = num;
+}
+int CheckToShow::getNum()
+{
+	return this->mNum;
 }
 
 void CheckToShow::setStart(int start)
@@ -52,13 +56,54 @@ int CheckToShow::getWidth(CRect& rect)
 	return (rect.Width() / (this->mNum));
 }
 
-int CheckToShow::getHeight(CRect& rect)
+int CheckToShow::getHeight(CRect& rect, float Xreal, float Yreal)
 {
-	float Weight = RAW_HEIGHT/ RAW_WIDTH;
-	return getWidth(rect)*RAW_HEIGHT/ RAW_WIDTH;
+	//float Weight = RAW_HEIGHT/ RAW_WIDTH;
+	return getWidth(rect) * Xreal/ Yreal;
 }
 
-int CheckToShow::getStartHeight(CRect &rect)
+int CheckToShow::getStartHeight(CRect &rect, BOOL inActive)
 {
+	if (inActive == TRUE)
+	{
+		float height = rect.Height() / 2 - rect.Width()/ 8 * RAW_HEIGHT / RAW_WIDTH;
+		return height;
+	}
 	return (rect.Height() / 2 -  getHeight(rect) / 2);
+}
+
+st_CheckResult CheckToShow::getCheckNum(CButton* bt[], int bt_num, BOOL setVarToThis)
+{
+	st_CheckResult checkResult;
+	checkResult.CheckNum = 0;
+	checkResult.start = -1;
+	int sign  = -1;
+	for (int i = 0; i < bt_num; i++)
+	{
+		if(bt[i]->GetCheck())
+		{
+			if(sign == -1)
+			{
+				checkResult.start = i;
+				sign = 0;
+			}
+			checkResult.CheckNum++;
+		}
+	}
+
+	if(setVarToThis)
+	{
+		this->mNum   = checkResult.CheckNum;
+		this->mStart = checkResult.start;
+	}
+
+	return checkResult;
+}
+
+void CheckToShow::ChangeButtonState(CButton* bt[], int bt_num, int State)
+{
+	for (int i = 0; i< bt_num; i++)
+	{
+		bt[i]->EnableWindow(State);
+	}
 }

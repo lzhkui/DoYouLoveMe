@@ -151,7 +151,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="Jai_Factory.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(JAI_SDK_LIB_64)"
+				AdditionalLibraryDirectories="&quot;$(JAI_SDK_LIB_64)&quot;;C:\Users\Hawksoft\Desktop\HSPIV\HSPIV64"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="17"
@@ -399,6 +399,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\KGloabalFunc.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\LinkImage.cpp"
 				>
 			</File>
@@ -497,7 +501,15 @@
 				>
 			</File>
 			<File
+				RelativePath="C:\Users\Hawksoft\Desktop\HSPIV\HSPIV64\hs_piv.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ImageInfo.h"
+				>
+			</File>
+			<File
+				RelativePath=".\KGloabalFunc.h"
 				>
 			</File>
 			<File

@@ -1,6 +1,8 @@
 #pragma once
 #include <Jai_Factory.h>
 #include "afxwin.h"
+#include "CheckToShow.h"
+
 
 /*显示函数传入结构体*/
 struct LiveView
@@ -34,6 +36,16 @@ struct DrawText
 typedef struct DrawText st_DrawText;
 typedef struct DrawText pst_drawText;
 
+static int number = 0; //统计类有多少实例
+
+typedef int (__cdecl *Load_PIV_Images_8bit_Proc)(unsigned char *, unsigned char *, int, int);
+typedef int (__cdecl *HSPIV_MQD_MP_Proc)(int, float *, float *, int, int, 
+										 float *, float *, int *, 
+										 float *, float *, float *);
+typedef int (__cdecl *HSPIV_MQD_Proc)(float *, float *, int, int, 
+									  float *, float *, int *, 
+									  float *, float *, float *);
+typedef int (__cdecl *Unload_PIV_Images_Proc)();
 class ShowView
 {
 public:
@@ -54,8 +66,39 @@ public:
 	void DrawText_k(st_DrawText *pDrawText);
 
 	BITMAPINFO* getBmpInfo();
+	void setStartPosition(int Xstart, int Ystart);
+	int getStartPositionX();
+	int getStartPositionY();
 
+	void DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v, 
+		int sizeX, int sizeY, unsigned int sign, CheckToShow* checkShow);
+	void DrawVectorArrow(POINT startPoint, POINT endPoint, CWnd* pWnd = NULL);
+	void GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuffSecond, int nBuffRow, int nBuffCol);
+
+	void Get_float(int size);
+	void setXRealPixel(int Xreal);
+	void setYRealPixel(int Yreal);
 private:
 	BITMAPINFO *bmpInfo;
 	CWnd *pWnd;
+	int Xstart;
+	int Ystart;
+	int Xreal;  //x方向实际像素长度
+	int Yreal;  //y方向实际像素长度
+
+public:
+	float* px;
+	float* py;
+	float* pue;
+	float* pve;
+	int paras[8];
+	float* pu;
+	float* pv;
+	float* pc;
+	int    mSizeX; //上述指针变量的"行" 
+	int    mSizeY; //上述指针变量的"列"
 };
+extern void CreateMatrixByCol(float* px, float* py, int xSmall, int xLarge, int ySmall, int yLarge,
+							  int step);
+extern void CreateMatrixByRow(float* px, float* py, int xSmall, int xLarge, int ySmall, int yLarge,
+							 int step);

@@ -316,8 +316,8 @@ BEGIN
     BEGIN
         MENUITEM "图像校正",                        ID_Adjust
         MENUITEM "图像拼接",                        ID_Link
-        MENUITEM "流场计算",                        ID_32806
-        MENUITEM "流场拼接",                        ID_32807
+        MENUITEM "流场计算",                        ID_SolveFlow
+        MENUITEM "流场拼接",                        ID_LinkFlow
         MENUITEM "test",                        ID_Test
     END
     MENUITEM "帮助",                          ID_32803

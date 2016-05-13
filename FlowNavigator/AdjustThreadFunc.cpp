@@ -1,6 +1,8 @@
 #include "StdAfx.h"
 #include "AdjustThreadFunc.h"
 #include "FNGlobal.h"
+#include "hs_piv.h"
+#include "KGloabalFunc.h"
 
 BOOL mAdjust = FALSE; // true代表点击了图像校正
 BOOL AdjustING = FALSE;
@@ -8,12 +10,14 @@ BOOL AdjustING = FALSE;
 unsigned char* targetArray[MAX_CAMERAS] = {NULL};
 unsigned char* pair_targetArray[MAX_CAMERAS][2] = {{NULL,NULL}};
 
+
 AdjustThreadFunc::AdjustThreadFunc(void)
 {
 }
 
 AdjustThreadFunc::~AdjustThreadFunc(void)
 {
+
 }
 
 unsigned char** GetMalloc_unChar(int size)
@@ -22,13 +26,12 @@ unsigned char** GetMalloc_unChar(int size)
 	{
 		if (targetArray[i] == NULL)
 		{
-			targetArray[i] = (unsigned char*)malloc(size);
+			targetArray[i] = (unsigned char*)malloc(size*sizeof(unsigned char));
 		}
 	}
 
 	return targetArray;
 }
-
 
 UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 {
@@ -48,7 +51,7 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 	}
 	for (int m = 0; m < m_pAdjustCls->Count; m++)
 	{
-		GetMalloc_unChar((m_pAdjustCls->adjustImage_C[m])->getImageSize());
+		GetMalloc_unChar(((m_pAdjustCls->adjustImage_C[m])->getImageSize()) * sizeof(unsigned char));
 		//targetArray[m] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
 		//pair_targetArray[m][0] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
 		//pair_targetArray[m][1] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
@@ -77,20 +80,37 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 		}
 		AdjustING = FALSE;
 
-		for (int i = 0; i < MAX_CAMERAS; i++)
+		float beginGetTwo = clock();
+		for (int i = 0; i < m_pAdjustCls->Count; i++)
 		{
 			if (Pair[i] == 0)
 			{
-
 				for (int n = 0; n < (m_pAdjustCls->adjustImage_C[i])->getImageSize(); n++)
 				{
-					*(pair_targetArray[i][0] + n) = *((m_pAdjustCls->adjustImage_C[i])->getImageInfo(0)->pImageBuffer + n);
+					*(pair_targetArray[i][0] + n) = *((m_pAdjustCls->adjustImage_C[i])->getImageInfo(0)
+						->pImageBuffer + n);
+					*(pair_targetArray[i][1] + n) = *((m_pAdjustCls->adjustImage_C[i])->getImageInfo(1)
+						->pImageBuffer + n);
 				}
-
-				Pair[i] = 2;
+			}
+			else
+			{
+                Sleep(10);
+				i--;
 			}
 		}
-	
+		m_pAdjustCls->showView->GenerateVectorNum(pair_targetArray[0][0], pair_targetArray[0][1], 2048, 2560);
+		m_pAdjustCls->showView->DrawArrowPoisitionBySign(m_pAdjustCls->showView->px,m_pAdjustCls->showView->py, 
+			m_pAdjustCls->showView->pu,m_pAdjustCls->showView->pv,
+			m_pAdjustCls->showView->mSizeX,m_pAdjustCls->showView->mSizeY, 0, m_pAdjustCls->checkShow);
+		float endGetTwo = clock();
+		TRACE("Get Two Image coast = %f\n",endGetTwo - beginGetTwo); 
+
+		for (int j = 0; j < m_pAdjustCls->Count; j++) 
+		{
+			Pair[j] = 2;
+		}
+
 		CRect rect;
 		m_pAdjustCls->pWnd->GetClientRect(&rect);
 
@@ -115,8 +135,8 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 		else
 		{
 
-			m_pAdjustCls->showView->LiveView_CWJ(targetArray[0],m_pAdjustCls->showView->getBmpInfo(),
-				0,0,rect.Width()/4,rect.Height()/2,HALFTONE);
+// 			m_pAdjustCls->showView->LiveView_CWJ(targetArray[0],m_pAdjustCls->showView->getBmpInfo(),
+// 				0,0,rect.Width()/4,rect.Height()/2,HALFTONE);
 			m_pAdjustCls->showView->LiveView_CWJ(targetArray[1],m_pAdjustCls->showView->getBmpInfo(),
 				rect.Width()/4,0,rect.Width()/4,rect.Height()/2,HALFTONE);
 		}
@@ -138,3 +158,43 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 	}
 	return 0;
 }
+
+/*
+FILE *file = fopen(("C:\\Users\\Hawksoft\\Desktop\\test.txt"),"w+");
+fprintf(file,"%s", "px:");
+for (int i = 0; i <nRow; i++)
+{
+	for(int j = 0; j < nCol; j++)
+	{
+		fprintf(file,"%f " ,*(px+i*nCol + j));
+	}
+	fprintf(file,"\n");
+}
+
+fprintf(file,"\n%s", "py:");
+for (int i = 0; i <nRow; i++)
+{
+	for(int j = 0; j < nCol; j++)
+	{
+		fprintf(file,"%f " ,*(py+i*nCol + j));
+	}
+	fprintf(file,"\n");
+}
+
+
+fprintf(file,"%s", "pue:");
+
+fprintf(file,"%f", pue);
+fprintf(file,"%s", "pve:");
+
+fprintf(file,"%f", pve);
+fprintf(file,"%s", "paras:");
+
+for (int i = 0; i < 8; i++)
+{
+	fprintf(file,"%d", paras[i]);
+}
+
+fflush(file);
+fclose(file);
+*/
