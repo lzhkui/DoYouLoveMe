@@ -391,15 +391,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\FNGlobal.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ImageInfo.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\KGloabalFunc.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\KGloabalVar.cpp"
 				>
 			</File>
 			<File
@@ -497,10 +497,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\FNGlobal.h"
-				>
-			</File>
-			<File
 				RelativePath="C:\Users\Hawksoft\Desktop\HSPIV\HSPIV64\hs_piv.h"
 				>
 			</File>
@@ -510,6 +506,14 @@
 			</File>
 			<File
 				RelativePath=".\KGloabalFunc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\KGloabalVar.h"
+				>
+			</File>
+			<File
+				RelativePath=".\KGlobalDefine.h"
 				>
 			</File>
 			<File

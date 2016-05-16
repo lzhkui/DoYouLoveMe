@@ -1,6 +1,8 @@
 #include "StdAfx.h"
 #include "ShowView.h"
 #include <math.h>
+#include "KGlobalDefine.h"
+#include "KGloabalFunc.h"
 
 void CreateMatrixByCol(float* px, float* py, int xSmall, int xLarge, int ySmall, int yLarge,
 					   int step)
@@ -68,7 +70,8 @@ void CreateMatrixByRow(float* px, float* py, int xSmall, int xLarge, int ySmall,
 }
 
 ShowView::ShowView(CWnd *pWnd)
-:Xstart(0),Ystart(0),Xreal(2560),Yreal(2048)
+:Xstart(0),Ystart(0),Xreal(2560),Yreal(2048),
+showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE)
 {
 	bmpInfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpInfo,0,sizeof(BITMAPINFO)); 
@@ -143,6 +146,21 @@ void ShowView::setStartPosition(int Xstart, int Ystart)
 	this->Xstart = Xstart;
 	this->Ystart = Ystart;
 }
+void ShowView::setStartPosition(CheckToShow* checkShow, int sign)
+{
+	CRect rect;
+	pWnd->GetClientRect(&rect);
+
+	showNum     = checkShow->getNumBySign();              //相机数量
+	singleWidth = rect.Width() / showNum;                 //单个相机在rect中的宽度 单位:像素
+	height      = checkShow->getHeight(rect);             //单个相机在rect中的高度 单位:像素
+	DbClk       = checkShow->getDoubleClk();
+	startHeight = checkShow->getStartHeight(rect, !DbClk);//判断距顶部的像素距离
+	int weight  = checkShow->ReturnWeight(sign);
+
+	this->Xstart = weight * singleWidth;
+	this->Ystart = startHeight;
+}
 
 int ShowView::getStartPositionX()
 {
@@ -152,6 +170,22 @@ int ShowView::getStartPositionX()
 int ShowView::getStartPositionY()
 {
 	return this->Ystart;
+}
+
+void ShowView::setStretchMode(int nStretchMode)
+{
+	this->nStretchMode = nStretchMode;
+}
+
+int ShowView::getStretchMode()
+{
+	return this->nStretchMode;
+}
+void ShowView::LiveViewBySign(unsigned char* targetImage, int sign, CheckToShow* checkShow)
+{
+	setStartPosition(checkShow, sign);
+	LiveView_CWJ(targetImage, bmpInfo, this->Xstart, this->Ystart, 
+		singleWidth, height, getStretchMode());
 }
 
 void ShowView::LiveViewWnd(st_LiveView *pLiveView)
@@ -309,16 +343,19 @@ void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuff
 	Unload_PIV_Images_Proc    Unload_PIV_Images    = (Unload_PIV_Images_Proc)GetProcAddress(hinst, "Unload_PIV_Images");
 	HSPIV_MQD_MP_Proc         HSPIV_MQD_MP         = (HSPIV_MQD_MP_Proc)GetProcAddress(hinst, "HSPIV_MQD_MP");
 	HSPIV_MQD_Proc            HSPIV_MQD            = (HSPIV_MQD_Proc)GetProcAddress(hinst,"HSPIV_MQD");
-	int xLarge = 2560;
-	int xSmall = 0;
-	int yLarge = 2048;
-	int ySmall = 0;
+	int xLarge = 2500;
+	int xSmall = 20;
+	int yLarge = 2000;
+	int ySmall = 20;
 	int step   = 30;
 	int nRow = (yLarge - ySmall) / step + 1;
 	int nCol = (xLarge - xSmall) / step + 1;
 
 	this->mSizeX = nRow;
 	this->mSizeY = nCol;
+
+	unsigned char* copy_pBuffFirst  = Matrix_T(pBuffFirst, nRow, nCol);
+	unsigned char* copy_pBuffSecond = Matrix_T(pBuffSecond, nRow, nCol);
 
 	Load_PIV_Images_8bit(pBuffFirst, pBuffSecond, nBuffRow, nBuffCol);
 	Get_float(nRow * nCol * sizeof(float));
@@ -328,6 +365,10 @@ void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuff
 	Unload_PIV_Images();
 	FreeLibrary(hinst);
 
+	free(copy_pBuffFirst);
+	copy_pBuffFirst = NULL;
+	free(copy_pBuffSecond);
+	copy_pBuffSecond = NULL;
 }
 
 void ShowView::setXRealPixel(int Xreal)
@@ -339,6 +380,8 @@ void ShowView::setYRealPixel(int Yreal)
 {
 	this->Yreal = Yreal;
 }
+
+
 
 void ShowView::DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v, 
 				int sizeX, int sizeY, unsigned int sign, CheckToShow* checkShow)
@@ -355,11 +398,13 @@ void ShowView::DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v
 	CPoint endPoint;
 	CRect rect;
 	pWnd->GetClientRect(&rect);
-	int showNum = checkShow->getNum();                        //选中相机数量
+
+	int showNum = checkShow->getNumBySign();                  //相机数量
 	int singleWidth = rect.Width() / showNum;                 //单个相机在rect中的宽度 单位:像素
 	int weight = checkShow->ReturnWeight(sign);               //权重...
 	int height = checkShow->getHeight(rect);                  //单个相机在rect中的高度 单位:像素
-	int startHeight = checkShow->getStartHeight(rect, TRUE); //判断据顶部像素距离
+	BOOL DbClk = checkShow->getDoubleClk();
+	int startHeight = checkShow->getStartHeight(rect, !DbClk);//判断距顶部的像素距离
 	for (int i = 0; i < sizeX; i++)
 	{
 		for(int j = 0; j < sizeY; j++)
@@ -372,12 +417,13 @@ void ShowView::DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v
 			yI = py[i*sizeY + j] / this->Yreal;
 			xStart = (weight + xI) * singleWidth;
 			yStart = startHeight + yI*height;
+		
 			startPoint.x = (int)xStart;
 			startPoint.y = (int)yStart;
 			//startPoint = (xStart, yStart);
 
-			xEnd   = xStart + 2 / showNum * u[i*sizeY + j];
-			yEnd   = yStart + 2 / showNum * v[i*sizeY + j];
+			xEnd   = xStart + /*8 / showNum * */u[i*sizeY + j];
+			yEnd   = yStart + /*8 / showNum * */v[i*sizeY + j];
 			endPoint.x = (int)xEnd;
 			endPoint.y = (int)yEnd;
 			//endPoint = (xEnd, yEnd);

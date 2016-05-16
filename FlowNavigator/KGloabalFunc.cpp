@@ -35,6 +35,21 @@ bool readBmp(char *bmpName)
 	return true;
 }
 
+// 输入原图信息，行，列
+unsigned char* Matrix_T(unsigned char* pBuff, int nRow, int nCol)
+{
+	unsigned char* copy_pBuff = (unsigned char*)malloc(nRow*nCol*sizeof(unsigned char));
+
+	for(int i =0; i < nCol; i++)
+	{
+		for (int j =0; j < nRow; j++)
+		{
+			*(copy_pBuff + i*nRow +j) = *(pBuff + j*nCol + i);
+		}
+	}
+
+	return copy_pBuff;
+}
 
 KGloabalFunc::KGloabalFunc(void)
 {

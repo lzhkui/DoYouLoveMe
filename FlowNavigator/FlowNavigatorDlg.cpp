@@ -400,7 +400,7 @@ void CFlowNavigatorDlg::OnPaint()
 	int showHeight = showWidth * 2048 / 2560; // 显示高度
 	int showStartHeight = rect.Height() / 2 - showHeight / 2;
 
-	if(CtrLine == 81)
+	if((CtrLine == 81) && (DoubleClk == DOUBLECLK_IN) && (CloseSystem == FALSE))
 	{
 		DrawLine(this, rect.left, showStartHeight, rect.right, showStartHeight);
 		DrawLine(this, rect.left, showStartHeight + showHeight, rect.right, showStartHeight + showHeight);
@@ -1023,6 +1023,8 @@ void CFlowNavigatorDlg::insertBySign(BOOL bContinuous, BOOL bSingleFrame, CCriti
 
 void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 {
+	int CameraSign = 0;
+
 	float begin = clock();
 
 	if(GetDlgItem(Check_ID[0]) != NULL)
@@ -1055,6 +1057,7 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 			adjustImage_C[0]->setPairImageInfo(&Pair[0], pAqImageInfo);
 			(Pair[0])--;
 		}
+		goto End;
 	} 
 	else 
 	{
@@ -1153,6 +1156,8 @@ End:
 
 void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 {
+	int CameraSign = 1;
+
 	if(GetDlgItem(Check_ID[1]) != NULL)
 	{
 		if((FALSE == isCamBtCheck(Check_ID[1], this)) || CtrLine == 0)
@@ -1182,6 +1187,7 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 			adjustImage_C[1]->setPairImageInfo(&Pair[1], pAqImageInfo);
 			(Pair[1])--;
 		}
+		goto End;
 	} 
 	else
 	{
@@ -1246,9 +1252,11 @@ End:
 
 void CFlowNavigatorDlg::StreamCBFunc2(J_tIMAGE_INFO * pAqImageInfo)
 {	
-	if(GetDlgItem(Check_ID[2]) != NULL)
+	int CameraSign = 2;
+
+	if(GetDlgItem(Check_ID[CameraSign]) != NULL)
 	{
-		if((FALSE == isCamBtCheck(Check_ID[2], this)) || CtrLine == 0)
+		if((FALSE == isCamBtCheck(Check_ID[CameraSign], this)) || CtrLine == 0)
 		{
 			goto End;
 		}
@@ -1257,43 +1265,60 @@ void CFlowNavigatorDlg::StreamCBFunc2(J_tIMAGE_INFO * pAqImageInfo)
 	{
 		goto End;
 	}
-	(RecvFrame[2])++;
+	(RecvFrame[CameraSign])++;
 	CRect rect;
 	GetClientRect(&rect);
 	int showHeight = rect.Width() / 8 *2048/2560;
 	int showStartHeight = rect.Height() / 2 - showHeight / 2;
 
-	if (CtrLine == 42)
+	if (mAdjust)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/2,0,rect.Width()/4,rect.Height()/2,HALFTONE);
-	}
-	else if (CtrLine == 81)
-	{
-		if(DoubleClk == DOUBLECLK_IN){ 
-			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*2,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-		}else if(DoubleClk == DOUBLECLK_OUT){
-			LiveViewWnd(this,checkShow,2,pAqImageInfo,bmpinfo,HALFTONE);
+		if (!AdjustING)
+		{
+			adjustImage_C[CameraSign]->setImageInfo(pAqImageInfo);
 		}
+		if (Pair[CameraSign] > 0)
+		{
+			adjustImage_C[CameraSign]->setPairImageInfo(&Pair[CameraSign], pAqImageInfo);
+			(Pair[CameraSign])--;
+		}
+		goto End;
+	} 
+	else
+	{
+
+		if (CtrLine == 42)
+		{
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/2,0,rect.Width()/4,rect.Height()/2,HALFTONE);
+		}
+		else if (CtrLine == 81)
+		{
+			if(DoubleClk == DOUBLECLK_IN){ 
+				LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*2,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			}else if(DoubleClk == DOUBLECLK_OUT){
+				LiveViewWnd(this,checkShow,2,pAqImageInfo,bmpinfo,HALFTONE);
+			}
+		}
+		insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
+			&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
+			Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
+			&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
+		// 	if(b_isContinuous)
+		// 	{
+		// 		if(Count2 > 0){
+		// 			g_cs2.Lock();
+		// 			if(-1 == InsertHead(pImage[2],pAqImageInfo,myImageInfo,head[2]))
+		// 			{
+		// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
+		// 				OnClose();
+		// 			}
+		// 			Count2--;
+		// 			g_cs2.Unlock();
+		// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo2,Count2,"2");
+		// 			TRACE("相机2：%d\n",Count2);
+		// 		}
+		// 	}
 	}
-	insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[2], &Count[2],
-		&(Count_Single[2]),&(Count_Once[2]), &(Space_Frame[2]),
-		Copy_Space_Frame[2],Copy_Count_Once[2],
-		&(pImage[2]), pAqImageInfo, myImageInfo, &(head[2]));
-// 	if(b_isContinuous)
-// 	{
-// 		if(Count2 > 0){
-// 			g_cs2.Lock();
-// 			if(-1 == InsertHead(pImage[2],pAqImageInfo,myImageInfo,head[2]))
-// 			{
-// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
-// 				OnClose();
-// 			}
-// 			Count2--;
-// 			g_cs2.Unlock();
-// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo2,Count2,"2");
-// 			TRACE("相机2：%d\n",Count2);
-// 		}
-// 	}
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
 	uint32_t iSize = sizeof(uint64_t);
@@ -1334,37 +1359,54 @@ void CFlowNavigatorDlg::StreamCBFunc3(J_tIMAGE_INFO * pAqImageInfo)
 	int showHeight = rect.Width() / 8 *2048/2560;
 	int showStartHeight = rect.Height() / 2 - showHeight / 2;
 
-	if(CtrLine == 42)
+	if (mAdjust)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4*3,0,rect.Width()/4,rect.Height()/2,HALFTONE);
-	}
-	else if (CtrLine == 81)
+		if (!AdjustING)
+		{
+			adjustImage_C[CameraSign]->setImageInfo(pAqImageInfo);
+		}
+		if (Pair[CameraSign] > 0)
+		{
+			adjustImage_C[CameraSign]->setPairImageInfo(&Pair[CameraSign], pAqImageInfo);
+			(Pair[CameraSign])--;
+		}
+		goto End;
+	} 
+	else
 	{
-		if(DoubleClk == DOUBLECLK_IN){ 
-			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*3,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-		}else if(DoubleClk == DOUBLECLK_OUT){
-			LiveViewWnd(this,checkShow,3,pAqImageInfo,bmpinfo,HALFTONE);
-		}	
+
+		if(CtrLine == 42)
+		{
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4*3,0,rect.Width()/4,rect.Height()/2,HALFTONE);
+		}
+		else if (CtrLine == 81)
+		{
+			if(DoubleClk == DOUBLECLK_IN){ 
+				LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*3,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			}else if(DoubleClk == DOUBLECLK_OUT){
+				LiveViewWnd(this,checkShow,3,pAqImageInfo,bmpinfo,HALFTONE);
+			}	
+		}
+		insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
+			&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
+			Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
+			&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
+		// 	if(b_isContinuous)
+		// 	{
+		// 		if(Count3 > 0){
+		// 			g_cs3.Lock();
+		// 			if(-1 == InsertHead(pImage[3],pAqImageInfo,myImageInfo,head[3]))
+		// 			{
+		// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
+		// 				OnClose();
+		// 			}
+		// 			Count3--;
+		// 			g_cs3.Unlock();
+		// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo3,Count3,"3");
+		// 			TRACE("相机3：%d\n",Count3);
+		// 		}
+		// 	}
 	}
-	insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
-		&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
-		Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
-		&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
-// 	if(b_isContinuous)
-// 	{
-// 		if(Count3 > 0){
-// 			g_cs3.Lock();
-// 			if(-1 == InsertHead(pImage[3],pAqImageInfo,myImageInfo,head[3]))
-// 			{
-// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
-// 				OnClose();
-// 			}
-// 			Count3--;
-// 			g_cs3.Unlock();
-// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo3,Count3,"3");
-// 			TRACE("相机3：%d\n",Count3);
-// 		}
-// 	}
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
 	uint32_t iSize = sizeof(uint64_t);
@@ -1405,37 +1447,54 @@ void CFlowNavigatorDlg::StreamCBFunc4(J_tIMAGE_INFO * pAqImageInfo)
 	int showHeight = rect.Width() / 8 *2048/2560;
 	int showStartHeight = rect.Height() / 2 - showHeight / 2;
 
-	if(CtrLine ==42)
+	if (mAdjust)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,0,rect.Height()/2,rect.Width()/4,rect.Height()/2,HALFTONE);
-	}
-	else if (CtrLine == 81)
+		if (!AdjustING)
+		{
+			adjustImage_C[CameraSign]->setImageInfo(pAqImageInfo);
+		}
+		if (Pair[CameraSign] > 0)
+		{
+			adjustImage_C[CameraSign]->setPairImageInfo(&Pair[CameraSign], pAqImageInfo);
+			(Pair[CameraSign])--;
+		}
+		goto End;
+	} 
+	else
 	{
-		if(DoubleClk == DOUBLECLK_IN){ 
-			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*4,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-		}else if(DoubleClk == DOUBLECLK_OUT){
-			LiveViewWnd(this,checkShow,4,pAqImageInfo,bmpinfo,HALFTONE);
-		}	
+
+		if(CtrLine ==42)
+		{
+			LiveView_Cwj(pAqImageInfo,bmpinfo,0,rect.Height()/2,rect.Width()/4,rect.Height()/2,HALFTONE);
+		}
+		else if (CtrLine == 81)
+		{
+			if(DoubleClk == DOUBLECLK_IN){ 
+				LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*4,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			}else if(DoubleClk == DOUBLECLK_OUT){
+				LiveViewWnd(this,checkShow,4,pAqImageInfo,bmpinfo,HALFTONE);
+			}	
+		}
+		insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
+			&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
+			Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
+			&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
+		// 	if(b_isContinuous)
+		// 	{
+		// 		if(Count4 > 0){
+		// 			g_cs4.Lock();
+		// 			if(-1 == InsertHead(pImage[4],pAqImageInfo,myImageInfo,head[4]))
+		// 			{
+		// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
+		// 				OnClose();
+		// 			}
+		// 			Count4--;
+		// 			g_cs4.Unlock();
+		// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo4,Count4,"4");
+		// 			TRACE("相机4：%d\n",Count4);
+		// 		}
+		// 	}
 	}
-	insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
-		&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
-		Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
-		&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
-// 	if(b_isContinuous)
-// 	{
-// 		if(Count4 > 0){
-// 			g_cs4.Lock();
-// 			if(-1 == InsertHead(pImage[4],pAqImageInfo,myImageInfo,head[4]))
-// 			{
-// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
-// 				OnClose();
-// 			}
-// 			Count4--;
-// 			g_cs4.Unlock();
-// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo4,Count4,"4");
-// 			TRACE("相机4：%d\n",Count4);
-// 		}
-// 	}
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
 	uint32_t iSize = sizeof(uint64_t);
@@ -1477,37 +1536,53 @@ void CFlowNavigatorDlg::StreamCBFunc5(J_tIMAGE_INFO * pAqImageInfo)
 	int showHeight = rect.Width() / 8 *2048/2560;
 	int showStartHeight = rect.Height() / 2 - showHeight / 2;
 
-	if (CtrLine == 42)
-	{	
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4,rect.Height()/2,rect.Width()/4,rect.Height()/2,HALFTONE);
-	}
-	else if (CtrLine == 81)
+	if (mAdjust)
 	{
-		if(DoubleClk == DOUBLECLK_IN){ 
-			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*5,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-		}else if(DoubleClk == DOUBLECLK_OUT){
-			LiveViewWnd(this,checkShow,5,pAqImageInfo,bmpinfo,HALFTONE);
-		}	
+		if (!AdjustING)
+		{
+			adjustImage_C[CameraSign]->setImageInfo(pAqImageInfo);
+		}
+		if (Pair[CameraSign] > 0)
+		{
+			adjustImage_C[CameraSign]->setPairImageInfo(&Pair[CameraSign], pAqImageInfo);
+			(Pair[CameraSign])--;
+		}
+		goto End;
+	} 
+	else
+	{
+		if (CtrLine == 42)
+		{	
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4,rect.Height()/2,rect.Width()/4,rect.Height()/2,HALFTONE);
+		}
+		else if (CtrLine == 81)
+		{
+			if(DoubleClk == DOUBLECLK_IN){ 
+				LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*5,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			}else if(DoubleClk == DOUBLECLK_OUT){
+				LiveViewWnd(this,checkShow,5,pAqImageInfo,bmpinfo,HALFTONE);
+			}	
+		}
+		insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
+			&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
+			Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
+			&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
+		// 	if(b_isContinuous)
+		// 	{
+		// 		if(Count5 > 0){
+		// 			g_cs5.Lock();
+		// 			if(-1 == InsertHead(pImage[5],pAqImageInfo,myImageInfo,head[5]))
+		// 			{
+		// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
+		// 				OnClose();
+		// 			}
+		// 			Count5--;
+		// 			g_cs5.Unlock();
+		// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo5,Count5,"5");
+		// 			TRACE("相机5：%d\n",Count5);
+		// 		}
+		// 	}
 	}
-	insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
-		&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
-		Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
-		&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
-// 	if(b_isContinuous)
-// 	{
-// 		if(Count5 > 0){
-// 			g_cs5.Lock();
-// 			if(-1 == InsertHead(pImage[5],pAqImageInfo,myImageInfo,head[5]))
-// 			{
-// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
-// 				OnClose();
-// 			}
-// 			Count5--;
-// 			g_cs5.Unlock();
-// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo5,Count5,"5");
-// 			TRACE("相机5：%d\n",Count5);
-// 		}
-// 	}
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
 	uint32_t iSize = sizeof(uint64_t);
@@ -1548,37 +1623,54 @@ void CFlowNavigatorDlg::StreamCBFunc6(J_tIMAGE_INFO * pAqImageInfo)
 	int showHeight = rect.Width() / 8 *2048/2560;
 	int showStartHeight = rect.Height() / 2 - showHeight / 2;
 
-	if (CtrLine == 42)
+	if (mAdjust)
 	{
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/2,rect.Height()/2,rect.Width()/4,rect.Height()/2,HALFTONE);
-	}
-	else if (CtrLine == 81) 
+		if (!AdjustING)
+		{
+			adjustImage_C[CameraSign]->setImageInfo(pAqImageInfo);
+		}
+		if (Pair[CameraSign] > 0)
+		{
+			adjustImage_C[CameraSign]->setPairImageInfo(&Pair[CameraSign], pAqImageInfo);
+			(Pair[CameraSign])--;
+		}
+		goto End;
+	} 
+	else
 	{
-		if(DoubleClk == DOUBLECLK_IN){ 
-			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*6,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-		}else if(DoubleClk == DOUBLECLK_OUT){
-			LiveViewWnd(this,checkShow,6,pAqImageInfo,bmpinfo,HALFTONE);
-		}	
+
+		if (CtrLine == 42)
+		{
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/2,rect.Height()/2,rect.Width()/4,rect.Height()/2,HALFTONE);
+		}
+		else if (CtrLine == 81) 
+		{
+			if(DoubleClk == DOUBLECLK_IN){ 
+				LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*6,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			}else if(DoubleClk == DOUBLECLK_OUT){
+				LiveViewWnd(this,checkShow,6,pAqImageInfo,bmpinfo,HALFTONE);
+			}	
+		}
+		insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
+			&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
+			Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
+			&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
+		// 	if(b_isContinuous)
+		// 	{
+		// 		if(Count6 > 0){
+		// 			g_cs6.Lock();
+		// 			if(-1 == InsertHead(pImage[6],pAqImageInfo,myImageInfo,head[6]))
+		// 			{
+		// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
+		// 				OnClose();
+		// 			}
+		// 			Count6--;
+		// 			g_cs6.Unlock();
+		// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo6,Count6,"6");
+		// 			TRACE("相机6：%d\n",Count6);
+		// 		}
+		// 	}
 	}
-	insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
-		&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
-		Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
-		&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
-// 	if(b_isContinuous)
-// 	{
-// 		if(Count6 > 0){
-// 			g_cs6.Lock();
-// 			if(-1 == InsertHead(pImage[6],pAqImageInfo,myImageInfo,head[6]))
-// 			{
-// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
-// 				OnClose();
-// 			}
-// 			Count6--;
-// 			g_cs6.Unlock();
-// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo6,Count6,"6");
-// 			TRACE("相机6：%d\n",Count6);
-// 		}
-// 	}
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
 	uint32_t iSize = sizeof(uint64_t);
@@ -1619,37 +1711,54 @@ void CFlowNavigatorDlg::StreamCBFunc7(J_tIMAGE_INFO * pAqImageInfo)
 	int showHeight = rect.Width() / 8 *2048/2560;
 	int showStartHeight = rect.Height() / 2 - showHeight / 2;
 
-	if (CtrLine ==42)
-	{	
-		LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4*3,rect.Height()/2,rect.Width()/4,rect.Height()/2,HALFTONE);
-	}
-	else if (CtrLine == 81)
+	if (mAdjust)
 	{
-		if(DoubleClk == DOUBLECLK_IN){ 
-			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*7,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
-		}else if(DoubleClk == DOUBLECLK_OUT){
-			LiveViewWnd(this,checkShow,7,pAqImageInfo,bmpinfo,HALFTONE);
-		}	
+		if (!AdjustING)
+		{
+			adjustImage_C[CameraSign]->setImageInfo(pAqImageInfo);
+		}
+		if (Pair[CameraSign] > 0)
+		{
+			adjustImage_C[CameraSign]->setPairImageInfo(&Pair[CameraSign], pAqImageInfo);
+			(Pair[CameraSign])--;
+		}
+		goto End;
+	} 
+	else
+	{
+
+		if (CtrLine ==42)
+		{	
+			LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/4*3,rect.Height()/2,rect.Width()/4,rect.Height()/2,HALFTONE);
+		}
+		else if (CtrLine == 81)
+		{
+			if(DoubleClk == DOUBLECLK_IN){ 
+				LiveView_Cwj(pAqImageInfo,bmpinfo,rect.Width()/8*7,showStartHeight,rect.Width()/8,showHeight,HALFTONE);
+			}else if(DoubleClk == DOUBLECLK_OUT){
+				LiveViewWnd(this,checkShow,7,pAqImageInfo,bmpinfo,HALFTONE);
+			}	
+		}
+		insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
+			&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
+			Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
+			&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
+		// 	if(b_isContinuous)
+		// 	{
+		// 		if(Count7 > 0){
+		// 			g_cs7.Lock();
+		// 			if(-1 == InsertHead(pImage[7],pAqImageInfo,myImageInfo,head[7]))
+		// 			{
+		// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
+		// 				OnClose();
+		// 			}
+		// 			Count7--;
+		// 			g_cs7.Unlock();
+		// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo7,Count7,"7");
+		// 			TRACE("相机7：%d\n",Count7);
+		// 		}
+		// 	}
 	}
-	insertBySign(b_isContinuous, b_isSingleFrame, &g_cs[CameraSign], &Count[CameraSign],
-		&(Count_Single[CameraSign]),&(Count_Once[CameraSign]), &(Space_Frame[CameraSign]),
-		Copy_Space_Frame[CameraSign],Copy_Count_Once[CameraSign],
-		&(pImage[CameraSign]), pAqImageInfo, myImageInfo, &(head[CameraSign]));
-// 	if(b_isContinuous)
-// 	{
-// 		if(Count7 > 0){
-// 			g_cs7.Lock();
-// 			if(-1 == InsertHead(pImage[7],pAqImageInfo,myImageInfo,head[7]))
-// 			{
-// 				AfxMessageBox(_T("内存不足！"),MB_ICONINFORMATION);
-// 				OnClose();
-// 			}
-// 			Count7--;
-// 			g_cs7.Unlock();
-// 			//SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo7,Count7,"7");
-// 			TRACE("相机7：%d\n",Count7);
-// 		}
-// 	}
 	uint64_t iCurruptedFrames = -1; // missing frames + uncompleted frames(frame with missing packets)
 	uint64_t iLostFrames = -1; // received but thrown for lacking of buffers in acquisition engine
 	uint32_t iSize = sizeof(uint64_t);
@@ -1779,6 +1888,9 @@ void CFlowNavigatorDlg::EndControl(void)
 			checkBt[i]->DestroyWindow(); // 手动创建的控件不删除，CloseCamera 有问题
 		}
 	}
+
+	DoubleClk = DOUBLECLK_IN;
+	CloseSystem = TRUE;
 }
 
 void CFlowNavigatorDlg::EnableControls()
@@ -1789,6 +1901,8 @@ void CFlowNavigatorDlg::EnableControls()
 	}
 	CtrLine = 0;
 	DoubleClk =DOUBLECLK_IN;
+	CloseSystem = TRUE;
+
 }
 
 void CFlowNavigatorDlg::ShowErrorMsg(CString message, J_STATUS_TYPE error)
@@ -1848,6 +1962,7 @@ void CFlowNavigatorDlg::OnOpenCamera()
 	CMenu * pMenu = GetMenu();
 	pMenu->EnableMenuItem(ID_OpenCamera,bt_on);
 	//dlgWait->KillTimes();
+	CloseSystem = FALSE;
 }
 
 void CFlowNavigatorDlg::OnCloseCamera()
@@ -1865,6 +1980,7 @@ void CFlowNavigatorDlg::OnCloseCamera()
 	bt_on = FALSE;
 	CMenu * pMenu = GetMenu();
 	pMenu->EnableMenuItem(ID_OpenCamera,bt_on);
+	CtrLine = 0;
 }
 
 void CFlowNavigatorDlg::OnQuit()
@@ -2436,6 +2552,8 @@ void CFlowNavigatorDlg::OnClose()
 	EnableControls();
 	GdiplusShutdown(gdiplusToken);
 
+
+
 	if (setDlg != NULL)
 	{	
 		delete setDlg;
@@ -2461,14 +2579,15 @@ void CFlowNavigatorDlg::OnAdjust()
 	}
 	m_pAdjustCls->showView = new ShowView(this);//
 	m_pAdjustCls->pWnd = this;
-	m_pAdjustCls->Count = m_CameraCount;
 
 	m_pAdjustCls->linkImage = new LinkImage();
 	m_pAdjustCls->pTwoImageInfo = (st_IMAGE_INFO *)malloc(sizeof(st_IMAGE_INFO));
 	m_pAdjustCls->pTwoImageInfo->pOutImage = NULL;
 
 	m_pAdjustCls->checkShow = checkShow;
+	checkShow->setCheckCamSign(checkBt, MAX_CAMERAS);
 	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
+	m_pAdjustCls->Count = checkShow->getNum();
 
 	checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, FALSE);
 
@@ -2551,6 +2670,11 @@ void CFlowNavigatorDlg::OnStartstream()
 void CFlowNavigatorDlg::OnCloseStream()
 {
 	// TODO: 在此添加命令处理程序代码
+	if (m_hCam[0] == NULL)
+	{
+		AfxMessageBox(_T("请先打开系统（系统->打开系统）!"));
+		return;
+	}
 	On8col1line();
 	CMenu* pMenu =GetMenu();
 	pMenu->EnableMenuItem(ID_StartStream,FALSE);
@@ -2583,6 +2707,7 @@ void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 	if (DoubleClk == DOUBLECLK_OUT)
 	{
 		DoubleClk = DOUBLECLK_IN;
+		checkShow->setDoubleClk(FALSE);
 		//On8col1line();
 		//UpdateWindow();
 		for(int i = 0; i < MAX_CAMERAS; i++)
@@ -2600,6 +2725,7 @@ void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 		{
 			DoubleClk = DOUBLECLK_OUT;
 			//DestroyCheckCamBt(checkBt, Check_ID);
+			checkShow->setDoubleClk(TRUE);
 		}
 // 		else if (DoubleClk == DOUBLECLK_OUT)
 // 		{

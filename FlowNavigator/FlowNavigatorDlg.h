@@ -19,7 +19,7 @@
 #include "ErrorCodeList.h"
 #include "SetSingleFrameValueDlg.h"
 #include "CheckToShow.h"
-#include "FNGlobal.h"
+#include "KGloabalVar.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"

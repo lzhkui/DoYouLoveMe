@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 #include "AdjustThreadFunc.h"
-#include "FNGlobal.h"
+#include "KGloabalVar.h"
 #include "hs_piv.h"
 #include "KGloabalFunc.h"
 
@@ -39,26 +39,29 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 
 	//J_tIMAGE_INFO * pAqImageInfo[pAdajustCLs->Count];
 
+	int* CheckCamSign; 
+	CheckCamSign = m_pAdjustCls->checkShow->getCheckCamSign();
+
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < m_pAdjustCls->Count; j++)
 		{
-			if (pair_targetArray[j][i] == NULL)
+			if (pair_targetArray[CheckCamSign[j]][i] == NULL)
 			{
-				pair_targetArray[j][i] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[j])->getImageSize());
+				pair_targetArray[CheckCamSign[j]][i] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[CheckCamSign[j]])->getImageSize());
 			}
 		}
 	}
 	for (int m = 0; m < m_pAdjustCls->Count; m++)
 	{
-		GetMalloc_unChar(((m_pAdjustCls->adjustImage_C[m])->getImageSize()) * sizeof(unsigned char));
+		GetMalloc_unChar(((m_pAdjustCls->adjustImage_C[CheckCamSign[m]])->getImageSize()) * sizeof(unsigned char));
 		//targetArray[m] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
 		//pair_targetArray[m][0] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
 		//pair_targetArray[m][1] = (unsigned char*)malloc((m_pAdjustCls->adjustImage_C[m])->getImageSize());
 	}
 	for (int i = 0 ; i < m_pAdjustCls->Count; i++)
 	{
-		while((m_pAdjustCls->adjustImage_C[i])->isImageInfoNULL())
+		while((m_pAdjustCls->adjustImage_C[CheckCamSign[i]])->isImageInfoNULL())
 		{
 			Sleep(1000);
 		}
@@ -73,23 +76,25 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 		for (int j = 0; j < m_pAdjustCls->Count; j++)
 		{
 			float begin = clock();
-			(m_pAdjustCls->adjustImage_C[j])->AdjustQX((m_pAdjustCls->adjustImage_C[j])->getImageInfo(),
-				(m_pAdjustCls->adjustImage_C[j])->relatedArray_k,targetArray[j]);
+			(m_pAdjustCls->adjustImage_C[CheckCamSign[j]])->AdjustQX((m_pAdjustCls->adjustImage_C[CheckCamSign[j]])->getImageInfo(),
+				(m_pAdjustCls->adjustImage_C[CheckCamSign[j]])->relatedArray_k,targetArray[CheckCamSign[j]]);
 			float end = clock();
 			TRACE("AdjustQx time[%d] = %f\n",j , end - begin); 
 		}
 		AdjustING = FALSE;
 
 		float beginGetTwo = clock();
+		
 		for (int i = 0; i < m_pAdjustCls->Count; i++)
 		{
-			if (Pair[i] == 0)
+			int imageSize = (m_pAdjustCls->adjustImage_C[CheckCamSign[i]])->getImageSize();
+			if (Pair[CheckCamSign[i]] == 0)
 			{
-				for (int n = 0; n < (m_pAdjustCls->adjustImage_C[i])->getImageSize(); n++)
+				for (int n = 0; n < imageSize; n++)
 				{
-					*(pair_targetArray[i][0] + n) = *((m_pAdjustCls->adjustImage_C[i])->getImageInfo(0)
+					*(pair_targetArray[CheckCamSign[i]][0] + n) = *((m_pAdjustCls->adjustImage_C[CheckCamSign[i]])->getImageInfo(0)
 						->pImageBuffer + n);
-					*(pair_targetArray[i][1] + n) = *((m_pAdjustCls->adjustImage_C[i])->getImageInfo(1)
+					*(pair_targetArray[CheckCamSign[i]][1] + n) = *((m_pAdjustCls->adjustImage_C[CheckCamSign[i]])->getImageInfo(1)
 						->pImageBuffer + n);
 				}
 			}
@@ -99,30 +104,40 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 				i--;
 			}
 		}
-		m_pAdjustCls->showView->GenerateVectorNum(pair_targetArray[0][0], pair_targetArray[0][1], 2048, 2560);
-		m_pAdjustCls->showView->DrawArrowPoisitionBySign(m_pAdjustCls->showView->px,m_pAdjustCls->showView->py, 
-			m_pAdjustCls->showView->pu,m_pAdjustCls->showView->pv,
-			m_pAdjustCls->showView->mSizeX,m_pAdjustCls->showView->mSizeY, 0, m_pAdjustCls->checkShow);
+
+		CRect rect;
+		m_pAdjustCls->pWnd->GetClientRect(&rect);
+
+		InvalidateRect(m_pAdjustCls->pWnd->GetSafeHwnd(), &rect, TRUE);
+		for (int j = 0; j < m_pAdjustCls->Count; j++)
+		{
+			m_pAdjustCls->showView->LiveViewBySign(pair_targetArray[CheckCamSign[j]][0], CheckCamSign[j],
+				m_pAdjustCls->checkShow);
+			m_pAdjustCls->showView->GenerateVectorNum(pair_targetArray[CheckCamSign[j]][0], 
+				pair_targetArray[CheckCamSign[j]][1], 2048, 2560);
+
+			m_pAdjustCls->showView->DrawArrowPoisitionBySign(m_pAdjustCls->showView->px,m_pAdjustCls->showView->py, 
+				m_pAdjustCls->showView->pu,m_pAdjustCls->showView->pv,
+				m_pAdjustCls->showView->mSizeX,m_pAdjustCls->showView->mSizeY, j, m_pAdjustCls->checkShow);
+		}
 		float endGetTwo = clock();
 		TRACE("Get Two Image coast = %f\n",endGetTwo - beginGetTwo); 
 
 		for (int j = 0; j < m_pAdjustCls->Count; j++) 
 		{
-			Pair[j] = 2;
+			Pair[CheckCamSign[j]] = 2;
 		}
 
-		CRect rect;
-		m_pAdjustCls->pWnd->GetClientRect(&rect);
 
 		if(mLink)
 		{
 			m_pAdjustCls->pTwoImageInfo->imageHeight = 2048;
 			m_pAdjustCls->pTwoImageInfo->imageWidth1 = 2560;
-			m_pAdjustCls->pTwoImageInfo->imageWidth2 =2560;
-			m_pAdjustCls->pTwoImageInfo->RangeMin1 = 0;
-			m_pAdjustCls->pTwoImageInfo->RangeMax1 = 2560;
-			m_pAdjustCls->pTwoImageInfo->RangeMin2 = 2000;
-			m_pAdjustCls->pTwoImageInfo->RangeMax2 = 4560;
+			m_pAdjustCls->pTwoImageInfo->imageWidth2 = 2560;
+			m_pAdjustCls->pTwoImageInfo->RangeMin1   = 0;
+			m_pAdjustCls->pTwoImageInfo->RangeMax1   = 2560;
+			m_pAdjustCls->pTwoImageInfo->RangeMin2   = 2000;
+			m_pAdjustCls->pTwoImageInfo->RangeMax2   = 4560;
 			m_pAdjustCls->pTwoImageInfo->pImageBuff1 = targetArray[0];
 			m_pAdjustCls->pTwoImageInfo->pImageBuff2 = targetArray[1];
 			m_pAdjustCls->linkImage->SplitTwoMonoImage(m_pAdjustCls->pTwoImageInfo);
@@ -137,8 +152,8 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 
 // 			m_pAdjustCls->showView->LiveView_CWJ(targetArray[0],m_pAdjustCls->showView->getBmpInfo(),
 // 				0,0,rect.Width()/4,rect.Height()/2,HALFTONE);
-			m_pAdjustCls->showView->LiveView_CWJ(targetArray[1],m_pAdjustCls->showView->getBmpInfo(),
-				rect.Width()/4,0,rect.Width()/4,rect.Height()/2,HALFTONE);
+// 			m_pAdjustCls->showView->LiveView_CWJ(targetArray[1],m_pAdjustCls->showView->getBmpInfo(),
+// 				rect.Width()/4,0,rect.Width()/4,rect.Height()/2,HALFTONE);
 		}
 	}
 

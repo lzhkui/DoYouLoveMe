@@ -3,13 +3,24 @@
 
 CheckToShow::CheckToShow(void)
 {
-	mNum   = 0;
-	mStart = 0;
+	mNum    = 0;
+	mStart  = 0;
+	initial();
 }
 CheckToShow::CheckToShow(int num, int start)
 {
-	mNum   = num;
-	mStart = start;
+	mNum    = num;
+	mStart  = start;
+	initial();
+}
+
+void CheckToShow::initial()
+{
+	b_DbClk = FALSE;
+	for(int i = 0; i < MAX_CAMERAS; i++)
+	{
+		CheckCamSign[i] = -1;
+	}
 }
 
 CheckToShow::~CheckToShow(void)
@@ -32,6 +43,16 @@ int CheckToShow::ReturnWeight(int sign)
 	return (sign - mStart);
 }
 
+void CheckToShow::setDoubleClk(BOOL b_DbClk)
+{
+	this->b_DbClk = b_DbClk;
+}
+
+BOOL CheckToShow::getDoubleClk()
+{
+	return this->b_DbClk;
+}
+
 void CheckToShow::setNum(int num)
 {
 	this->mNum = num;
@@ -39,6 +60,17 @@ void CheckToShow::setNum(int num)
 int CheckToShow::getNum()
 {
 	return this->mNum;
+}
+
+int CheckToShow::getNumBySign()
+{
+	if (getDoubleClk())
+	{
+		return this->mNum;
+	}
+
+	return MAX_CAMERAS;
+	
 }
 
 void CheckToShow::setStart(int start)
@@ -53,7 +85,17 @@ void CheckToShow::setRect(CRect& rect)
 
 int CheckToShow::getWidth(CRect& rect)
 {
-	return (rect.Width() / (this->mNum));
+	if(this->mNum == 0)
+	{
+		return 0;
+	}
+	if(getDoubleClk())
+	{
+		return (rect.Width() / (this->mNum));
+	}
+	
+	return rect.Width() / MAX_CAMERAS;
+	
 }
 
 int CheckToShow::getHeight(CRect& rect, float Xreal, float Yreal)
@@ -66,7 +108,8 @@ int CheckToShow::getStartHeight(CRect &rect, BOOL inActive)
 {
 	if (inActive == TRUE)
 	{
-		float height = rect.Height() / 2 - rect.Width()/ 8 * RAW_HEIGHT / RAW_WIDTH;
+		int showHeigh = rect.Width()/ 8 * 2048 / 2560;
+		int height = rect.Height() / 2 - showHeigh / 2;
 		return height;
 	}
 	return (rect.Height() / 2 -  getHeight(rect) / 2);
@@ -75,9 +118,11 @@ int CheckToShow::getStartHeight(CRect &rect, BOOL inActive)
 st_CheckResult CheckToShow::getCheckNum(CButton* bt[], int bt_num, BOOL setVarToThis)
 {
 	st_CheckResult checkResult;
+
 	checkResult.CheckNum = 0;
-	checkResult.start = -1;
-	int sign  = -1;
+	checkResult.start    = -1;
+	int sign             = -1;
+
 	for (int i = 0; i < bt_num; i++)
 	{
 		if(bt[i]->GetCheck())
@@ -91,6 +136,7 @@ st_CheckResult CheckToShow::getCheckNum(CButton* bt[], int bt_num, BOOL setVarTo
 		}
 	}
 
+	
 	if(setVarToThis)
 	{
 		this->mNum   = checkResult.CheckNum;
@@ -98,6 +144,36 @@ st_CheckResult CheckToShow::getCheckNum(CButton* bt[], int bt_num, BOOL setVarTo
 	}
 
 	return checkResult;
+}
+
+void CheckToShow::setCheckCamSign(CButton* bt[], int bt_num)
+{
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		this->CheckCamSign[i] = -1;
+	}
+	int j = 0;
+	for (int i = 0; i < bt_num; i++)
+	{
+		if(bt[i]->GetCheck())
+		{
+			this->CheckCamSign[j] = i;
+			j++;
+		}
+	}
+}
+
+void CheckToShow::setCheckCamSign(int* sign)
+{
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		CheckCamSign[i] = *(sign + i);
+	}
+}
+
+int* CheckToShow::getCheckCamSign()
+{
+	return this->CheckCamSign;
 }
 
 void CheckToShow::ChangeButtonState(CButton* bt[], int bt_num, int State)

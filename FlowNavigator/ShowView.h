@@ -55,6 +55,9 @@ public:
 	void setWidth(long width);
     void setHeight(long Height);
 
+	//根据sign展示图片位置，需要先调用setStartPosition
+	void LiveViewBySign(unsigned char* targetImage, int sign, CheckToShow* checkShow);
+
 	/*可以重新指定CWnd 中显示*/
 	void LiveViewWnd(st_LiveView *pLiveView);
 
@@ -63,10 +66,12 @@ public:
 		int x, int y,                                                  //显示区域起始位置(左上角)
 		int scaleX, int scaleY,                                        //需要显示的宽高
 		int nStretchMode);                                             //COLORONCOLOR   HALFTONE
+	
 	void DrawText_k(st_DrawText *pDrawText);
 
 	BITMAPINFO* getBmpInfo();
 	void setStartPosition(int Xstart, int Ystart);
+	void setStartPosition(CheckToShow* checkShow, int sign);
 	int getStartPositionX();
 	int getStartPositionY();
 
@@ -78,14 +83,23 @@ public:
 	void Get_float(int size);
 	void setXRealPixel(int Xreal);
 	void setYRealPixel(int Yreal);
+	void setStretchMode(int nStretchMode);
+	int getStretchMode();
+
 private:
 	BITMAPINFO *bmpInfo;
 	CWnd *pWnd;
 	int Xstart;
 	int Ystart;
-	int Xreal;  //x方向实际像素长度
-	int Yreal;  //y方向实际像素长度
+	int Xreal;        //x方向实际像素长度
+	int Yreal;        //y方向实际像素长度
 
+	int showNum;      //若double_in，则为8； double_out时为选中个数
+	int singleWidth;  //根据showNum得到的单个显示区域宽度
+	int height;       //单个显示区域高度
+	BOOL DbClk;       //double_in时: false   double_out时：true
+	int startHeight;  //相对客户区顶端的高度
+	int nStretchMode; //显示模式
 public:
 	float* px;
 	float* py;
