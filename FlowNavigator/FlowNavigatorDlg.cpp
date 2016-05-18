@@ -124,7 +124,7 @@ void EnableCheckCamBt(CWnd * pWnd, UINT ID[], BOOL enable)
 	{
 		if(pWnd->GetDlgItem(ID[i]) != NULL)
 		{
-			pWnd->GetDlgItem(ID[i])->EnableWindow(enable);
+			pWnd->GetDlgItem(ID[i])->ShowWindow(enable);
 		}
 	}
 }
@@ -183,16 +183,20 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
 
-	m_hFactory = NULL;
-	m_CameraCount = 0;
-	CtrLine = 0;
-	setDlg = NULL;
-	
-	//Count=Count1=Count2=Count3=Count4=Count5=Count6=Count7=5;
-	m_pAdjustCls = (pAdajustCLs)malloc(sizeof(AdajustCLs));//校正线程传入参数
-	showView = new ShowView(this); 
+	m_hFactory       = NULL;
+	m_CameraCount    = 0;
+	CtrLine          = 0;
+	setDlg           = NULL;
 	m_CurrentProPath = DEFAULT_PATH;
-	checkShow = new CheckToShow;
+	b_LBDown         = FALSE;
+	b_LBUp           = FALSE;
+	CamSign          = -1;
+	CamSignNow       = -1;
+	//Count=Count1=Count2=Count3=Count4=Count5=Count6=Count7=5;
+	m_pAdjustCls     = (pAdajustCLs)malloc(sizeof(AdajustCLs));//校正线程传入参数
+	
+	checkShow        = new CheckToShow;
+	
 
 	// Initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
@@ -209,28 +213,28 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 		RecvFrame[i] = 0;
 		(m_CnvImageInfo[i]).pImageBuffer = NULL;// 必须置空，否则后面不分配空间
 
-		checkBt[i] = new CButton;
+		checkBt[i]   = new CButton;
 	}
 	bmpinfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpinfo,0,sizeof(BITMAPINFO)); 
 	bmpinfo->bmiHeader.biPlanes = 1;    
-	bmpinfo->bmiHeader.biWidth=2560;
-	bmpinfo->bmiHeader.biHeight=2048;
+	bmpinfo->bmiHeader.biWidth  = 2560;
+	bmpinfo->bmiHeader.biHeight = 2048;
 	//bmpinfo->bmiHeader.biSizeImage=2560*2048*8;
-	bmpinfo->bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+	bmpinfo->bmiHeader.biSize   = sizeof(BITMAPINFOHEADER);
 
 
-	bmpinfo->bmiHeader.biCompression =BI_RGB;      
-	bmpinfo->bmiHeader.biBitCount=8;
-	bmpinfo->bmiHeader.biClrUsed=0;//为0就用2^biBitCount
+	bmpinfo->bmiHeader.biCompression = BI_RGB;      
+	bmpinfo->bmiHeader.biBitCount    = 8;
+	bmpinfo->bmiHeader.biClrUsed     = 0;//为0就用2^biBitCount
 	//bmpinfo->bmiHeader.biClrImportant=256;
 
 
 	for( int j = 0; j < 256; j++ )
 	{
-		bmpinfo->bmiColors[j].rgbBlue =  (BYTE) (0xff & j);
-		bmpinfo->bmiColors[j].rgbGreen = (BYTE)j;// bmpinfo->bmiColors[j].rgbBlue;
-		bmpinfo->bmiColors[j].rgbRed =(BYTE)j;// bmpinfo->bmiColors[j].rgbBlue;
+		bmpinfo->bmiColors[j].rgbBlue     = (BYTE) (0xff & j);
+		bmpinfo->bmiColors[j].rgbGreen    = (BYTE)j;  // bmpinfo->bmiColors[j].rgbBlue;
+		bmpinfo->bmiColors[j].rgbRed      = (BYTE)j;   // bmpinfo->bmiColors[j].rgbBlue;
 		bmpinfo->bmiColors[j].rgbReserved = 0;
 	}
 
@@ -304,6 +308,9 @@ BEGIN_MESSAGE_MAP(CFlowNavigatorDlg, CDialog)
 	ON_COMMAND(ID_CloseStream, &CFlowNavigatorDlg::OnCloseStream)
 	ON_COMMAND(ID_Reboot, &CFlowNavigatorDlg::OnReboot)
 	ON_COMMAND(ID_LinkFlow, &CFlowNavigatorDlg::OnLinkFlow)
+	ON_WM_LBUTTONUP()
+	ON_WM_MOUSEMOVE()
+	ON_WM_RBUTTONDBLCLK()
 END_MESSAGE_MAP()
 
 
@@ -343,6 +350,10 @@ BOOL CFlowNavigatorDlg::OnInitDialog()
 	m_PixelType = J_GVSP_PIX_MONO8; 
 
 	ShowWindow(SW_MAXIMIZE);
+
+	zoomImage        = new ZoomImage(this);
+	showView         = new ShowView(this); 
+
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -1789,10 +1800,54 @@ void CFlowNavigatorDlg::LiveViewWnd(CWnd* pWnd, CheckToShow* checkShow, int sign
 	int Weight      = checkShow->ReturnWeight(sign);
 	int startHeight = checkShow->getStartHeight(rect);
 	int SrcWidth    = checkShow->getWidth(rect);
-	int SrcHeight   = checkShow->getHeight(rect);
+	int SrcHeight   = checkShow->getHeight(rect, 2048 , 2560); // 这里不传2560，后面默认参数莫名其妙被改成了2056_Bug_20160517
 
-	LiveView_Cwj(pAqImageInfo, bmpinfo, Weight*SrcWidth, startHeight, SrcWidth, SrcHeight);
+	if(sign == CamSign)
+	{
+		LiveView_Cwj(pAqImageInfo, bmpinfo, Weight*SrcWidth, startHeight, SrcWidth, SrcHeight, checkShow,
+			HALFTONE);
+	}
+	else
+	{
+		LiveView_Cwj(pAqImageInfo, bmpinfo, Weight*SrcWidth, startHeight, SrcWidth, SrcHeight, nStretchMode);
+	}
 }
+
+void CFlowNavigatorDlg::LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,
+									 int x,int y,int scaleX,int scaleY,
+									 CheckToShow* checkShow,
+									 int nStretchMode)
+{
+	CDC * pDC = GetDC();
+	CDC MemDC;
+
+	if(!MemDC.CreateCompatibleDC(pDC))
+	{
+		ReleaseDC(pDC);
+		return;
+	}
+	CBitmap bmp;
+	bmp.CreateCompatibleBitmap(pDC,bmpinfo->bmiHeader.biWidth,bmpinfo->bmiHeader.biHeight);
+	CBitmap* pOldBmp = MemDC.SelectObject(&bmp);
+	::SetDIBitsToDevice(MemDC.GetSafeHdc(),
+		0,0,bmpinfo->bmiHeader.biWidth,bmpinfo->bmiHeader.biHeight,
+		0,0,
+		0,(bmpinfo->bmiHeader.biHeight),
+		(pAqImageInfo->pImageBuffer),
+		bmpinfo,
+		DIB_RGB_COLORS);
+
+	pDC->SetStretchBltMode(nStretchMode);//COLORONCOLOR   HALFTONE
+
+	pDC->StretchBlt(x,y,scaleX,scaleY,&MemDC,checkShow->showStartAndSize[0],checkShow->showStartAndSize[1],/*first*/
+		checkShow->showStartAndSize[2],-checkShow->showStartAndSize[3],/*second */
+		SRCCOPY);
+	MemDC.SelectObject(pOldBmp);
+	MemDC.DeleteDC();
+	bmp.DeleteObject();
+	ReleaseDC(pDC);
+}
+
 void CFlowNavigatorDlg::LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,
 									 int x,int y,int scaleX,int scaleY,int nStretchMode)
 {
@@ -1852,14 +1907,14 @@ void CFlowNavigatorDlg::LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bm
 						   DWORD dwRop)
  
 　　hdcDest：指向目标设备环境的句柄。 
-　　nXDest：指定目标矩形区域左上角的X轴逻辑坐标。 
-　　nYDest：指定目标矩形区域左上角的Y轴逻辑坐标。 
-　　nWidth：指定源和目标矩形区域的逻辑宽度。 
+　　nXDest： 指定目标矩形区域左上角的X轴逻辑坐标。 
+　　nYDest： 指定目标矩形区域左上角的Y轴逻辑坐标。 
+　　nWidth： 指定源和目标矩形区域的逻辑宽度。 
 　　nHeight：指定源和目标矩形区域的逻辑高度。 
-　　hdcSrc：指向源设备环境的句柄。 
-　　nXSrc：指定源矩形区域左上角的X轴逻辑坐标。 
-　　nYSrc：指定源矩形区域左上角的Y轴逻辑坐标。 
-　　nWidthSrc：指定源矩形的宽度，按逻辑单位表示宽度。 
+　　hdcSrc： 指向源设备环境的句柄。 
+　　nXSrc：  指定源矩形区域左上角的X轴逻辑坐标。 
+　　nYSrc：  指定源矩形区域左上角的Y轴逻辑坐标。 
+　　nWidthSrc： 指定源矩形的宽度，按逻辑单位表示宽度。  
 　　nHeightSrc：指定源矩形的高度，按逻辑单位表示高度。
   */
 
@@ -2664,7 +2719,7 @@ void CFlowNavigatorDlg::OnStartstream()
 	On8col1line();
 	CMenu * pMenu = GetMenu();
 	pMenu->EnableMenuItem(ID_StartStream,TRUE);
-	EnableCheckCamBt(this, Check_ID, TRUE);
+	EnableCheckCamBt(this, Check_ID, SW_SHOW);
 }
 
 void CFlowNavigatorDlg::OnCloseStream()
@@ -2678,21 +2733,95 @@ void CFlowNavigatorDlg::OnCloseStream()
 	On8col1line();
 	CMenu* pMenu =GetMenu();
 	pMenu->EnableMenuItem(ID_StartStream,FALSE);
-	EnableCheckCamBt(this,Check_ID,FALSE);
+	EnableCheckCamBt(this,Check_ID,SW_HIDE);
 	for (int i = 0; i < MAX_CAMERAS; i++)
 	{
 		RecvFrame[i] = 0;
 	}
+	Invalidate(TRUE);
 }
+
+BOOL CFlowNavigatorDlg::getLBDownState(CPoint point)
+{
+	int startHeight = checkShow->getStartHeight(FALSE);
+	int bottom      = checkShow->getHeight() + startHeight;
+	int intY = point.y;
+	if((intY < startHeight) || (intY > bottom))
+	{
+		b_LBDown = FALSE;
+		return b_LBDown;
+	}
+	b_LBDown = TRUE;
+
+	return b_LBDown;
+}
+
 
 void CFlowNavigatorDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 
-	CDialog::OnLButtonDown(nFlags, point);
+	if(DoubleClk == DOUBLECLK_IN)
+	{
+		return;
+	}
+	getLBDownState(point);
+
+	b_LBUp   = FALSE;
 	float x = point.x;
 	float y = point.y;
+
+	PointStart.x = point.x;
+	PointStart.y = point.y;
+	GetCursorPos(&PointEnd);
+// 	CClientDC dc(this);
+// 
+// 	m_RectTracker.Draw(&dc);
+// 	m_RectTracker.Track(this,point,TRUE);
+// 	Invalidate();
 	TRACE(_T("x=%f, y=%f\n"), x, y);
+	CDialog::OnLButtonDown(nFlags, point);
+}
+
+void CFlowNavigatorDlg::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	if(!b_LBDown || !getLBDownState(point))
+	{
+		return;
+	}
+	PointEnd.x = point.x;
+	PointEnd.y = point.y;
+
+	zoomImage->RegularTwoPoint(PointStart, PointEnd);
+    checkShow->ReturnSignByPosition(PointStart, &CamSign, &CamSignNow);
+	checkShow->GenerateShowStartAndSize(PointStart,PointEnd);
+
+	b_LBDown = FALSE;
+	b_LBUp   = TRUE;
+
+
+// 	CRect rect(PointStart.x, PointStart.y, PointEnd.x, PointEnd.y);
+// 	CClientDC clientDc(this);
+// 	HDC hdc = clientDc.GetSafeHdc(); 
+// 	SetROP2(hdc,R2_MASKPEN);
+// 	clientDc.DrawFocusRect(rect);
+
+	CDialog::OnLButtonUp(nFlags, point);
+}
+
+void CFlowNavigatorDlg::OnMouseMove(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if(!b_LBDown || !getLBDownState(point))
+	{
+		return;
+	}
+	PointEnd = point;
+	zoomImage->DrawRectangle(PointStart, PointEnd);
+
+	CDialog::OnMouseMove(nFlags, point);
 }
 
 //客户区点击有效
@@ -2708,11 +2837,12 @@ void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 	{
 		DoubleClk = DOUBLECLK_IN;
 		checkShow->setDoubleClk(FALSE);
+		CamSign = -1; // 让放大后的图像，执行DOUBLECLK_IN时再DOUBLECLK_OUT时，恢复显示_BUG_20160518
 		//On8col1line();
 		//UpdateWindow();
 		for(int i = 0; i < MAX_CAMERAS; i++)
 		{
-			GetDlgItem(Check_ID[i])->EnableWindow(TRUE);
+			GetDlgItem(Check_ID[i])->ShowWindow(SW_SHOW);
 		}
 
 		Invalidate(TRUE);
@@ -2726,6 +2856,7 @@ void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 			DoubleClk = DOUBLECLK_OUT;
 			//DestroyCheckCamBt(checkBt, Check_ID);
 			checkShow->setDoubleClk(TRUE);
+			EnableCheckCamBt(this, Check_ID, SW_HIDE);
 		}
 // 		else if (DoubleClk == DOUBLECLK_OUT)
 // 		{
@@ -2737,9 +2868,22 @@ void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 		//此时代表没有完成 打开系统->打开采集终端 操作
 		return;
 	}
-	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
 
+	checkShow->setCheckCamSign(checkBt, MAX_CAMERAS);
+	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
 	checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, FALSE);
+
+	CRect rect;
+	GetClientRect(&rect);
+	checkShow->setRect(rect);
+}
+
+void CFlowNavigatorDlg::OnRButtonDblClk(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	CamSign = -1;
+	CDialog::OnRButtonDblClk(nFlags, point);
 }
 
 void CFlowNavigatorDlg::OnReboot()
@@ -2757,3 +2901,4 @@ void CFlowNavigatorDlg::OnLinkFlow()
 
 	checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, FALSE);
 }
+

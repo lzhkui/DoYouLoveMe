@@ -151,11 +151,11 @@ void ShowView::setStartPosition(CheckToShow* checkShow, int sign)
 	CRect rect;
 	pWnd->GetClientRect(&rect);
 
-	showNum     = checkShow->getNumBySign();              //相机数量
-	singleWidth = rect.Width() / showNum;                 //单个相机在rect中的宽度 单位:像素
-	height      = checkShow->getHeight(rect);             //单个相机在rect中的高度 单位:像素
-	DbClk       = checkShow->getDoubleClk();
-	startHeight = checkShow->getStartHeight(rect, !DbClk);//判断距顶部的像素距离
+	this->showNum     = checkShow->getNumBySign();              //相机数量
+	this->singleWidth = rect.Width() / showNum;                 //单个相机在rect中的宽度 单位:像素
+	this->height      = checkShow->getHeight(rect);             //单个相机在rect中的高度 单位:像素
+	this->DbClk       = checkShow->getDoubleClk();
+	this->startHeight = checkShow->getStartHeight(rect, !DbClk);//判断距顶部的像素距离
 	int weight  = checkShow->ReturnWeight(sign);
 
 	this->Xstart = weight * singleWidth;
@@ -187,7 +187,19 @@ void ShowView::LiveViewBySign(unsigned char* targetImage, int sign, CheckToShow*
 	LiveView_CWJ(targetImage, bmpInfo, this->Xstart, this->Ystart, 
 		singleWidth, height, getStretchMode());
 }
+void ShowView::LiveViewWnd(CWnd* pWnd, CheckToShow* checkShow, int sign,
+				 unsigned char* pImageBuff,BITMAPINFO *bmpinfo,int nStretchMode)
+{
+	CRect rect;
+	pWnd->GetClientRect(&rect);
 
+	int Weight      = checkShow->ReturnWeight(sign);
+	int startHeight = checkShow->getStartHeight(rect);
+	int SrcWidth    = checkShow->getWidth(rect);
+	int SrcHeight   = checkShow->getHeight(rect, 2048 , 2560); // 这里不传2560，后面默认参数莫名其妙被改成了2056_Bug_20160517
+
+	LiveView_CWJ(pImageBuff, bmpinfo, Weight*SrcWidth, startHeight, SrcWidth, SrcHeight, nStretchMode);
+}
 void ShowView::LiveViewWnd(st_LiveView *pLiveView)
 {
 	unsigned char* pImageBuffer = pLiveView->pImageBuffer;

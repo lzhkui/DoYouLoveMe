@@ -58,22 +58,25 @@ public:
 	//根据sign展示图片位置，需要先调用setStartPosition
 	void LiveViewBySign(unsigned char* targetImage, int sign, CheckToShow* checkShow);
 
+	void LiveViewWnd(CWnd* pWnd, CheckToShow* checkShow, int sign,
+		unsigned char* pImageBuff,BITMAPINFO *bmpinfo,int nStretchMode);
+
 	/*可以重新指定CWnd 中显示*/
 	void LiveViewWnd(st_LiveView *pLiveView);
 
 	/*在类构造函数传入的CWnd中显示*/
 	void LiveView_CWJ(unsigned char * pImageBuffer, BITMAPINFO* bmpInfo, //调色板
-		int x, int y,                                                  //显示区域起始位置(左上角)
-		int scaleX, int scaleY,                                        //需要显示的宽高
-		int nStretchMode);                                             //COLORONCOLOR   HALFTONE
+		int x, int y,                                                    //显示区域起始位置(左上角)
+		int scaleX, int scaleY,                                          //需要显示的宽高
+		int nStretchMode);                                               //COLORONCOLOR   HALFTONE
 	
 	void DrawText_k(st_DrawText *pDrawText);
 
 	BITMAPINFO* getBmpInfo();
 	void setStartPosition(int Xstart, int Ystart);
 	void setStartPosition(CheckToShow* checkShow, int sign);
-	int getStartPositionX();
-	int getStartPositionY();
+	int  getStartPositionX();
+	int  getStartPositionY();
 
 	void DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v, 
 		int sizeX, int sizeY, unsigned int sign, CheckToShow* checkShow);
@@ -84,7 +87,7 @@ public:
 	void setXRealPixel(int Xreal);
 	void setYRealPixel(int Yreal);
 	void setStretchMode(int nStretchMode);
-	int getStretchMode();
+	int  getStretchMode();
 
 private:
 	BITMAPINFO *bmpInfo;
@@ -93,7 +96,7 @@ private:
 	int Ystart;
 	int Xreal;        //x方向实际像素长度
 	int Yreal;        //y方向实际像素长度
-
+private:
 	int showNum;      //若double_in，则为8； double_out时为选中个数
 	int singleWidth;  //根据showNum得到的单个显示区域宽度
 	int height;       //单个显示区域高度

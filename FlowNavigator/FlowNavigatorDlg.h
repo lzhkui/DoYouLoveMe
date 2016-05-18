@@ -15,11 +15,13 @@
 #include "ShowView.h"
 #include "AdjustThreadFunc.h"
 #include "LinkImage.h"
-#include   <afxpriv.h> //T2A()可能用到
+#include  <afxpriv.h> //T2A()可能用到
 #include "ErrorCodeList.h"
 #include "SetSingleFrameValueDlg.h"
 #include "CheckToShow.h"
 #include "KGloabalVar.h"
+#include <afxext.h>
+#include "ZoomImage.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -62,34 +64,42 @@ public:
 	CButton* checkBt[MAX_CAMERAS];
 
 	CheckToShow* checkShow; //双击后的显示问题
+	ZoomImage* zoomImage;   //缩放
+
+
 	//用于GDI+初始化函数
 private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
-
-
+	CPoint PointStart;
+	CPoint PointEnd;
+	//CRectTracker m_RectTracker;  //橡皮圈
+	BOOL b_LBDown;                 //左击按下
+	BOOL b_LBUp;                   //左击抬起
+	int CamSign;                   //鼠标起点选中的camera标号
+	int CamSignNow;                //鼠标起点处当前的顺序编号
 
 public:
-	FACTORY_HANDLE  m_hFactory;                         // Factory Handle
+	FACTORY_HANDLE  m_hFactory;                                      // Factory Handle
 	CAM_HANDLE      m_hCam[MAX_CAMERAS];                             // Camera Handle
 	VIEW_HANDLE     m_hView[MAX_CAMERAS];                            // View Window handle
 	THRD_HANDLE     m_hThread[MAX_CAMERAS];                          // Stream Channel handle
 	int8_t          m_sCameraId[MAX_CAMERAS][J_CAMERA_ID_SIZE];      // Camera ID
-	NODE_HANDLE     m_hGainNode;                        // Handle to "GainRaw" node
-	NODE_HANDLE     m_hExposureNode;                    // Handle to "ExposureTimeRaw" node
+	NODE_HANDLE     m_hGainNode;                                     // Handle to "GainRaw" node
+	NODE_HANDLE     m_hExposureNode;                                 // Handle to "ExposureTimeRaw" node
 	PIXELVALUE			m_PixelValue;
 	uint64_t			m_PixelType;
 	//CRITICAL_SECTION    m_CriticalSection;
-	//J_tIMAGE_INFO		m_CnvImageInfo;    // Image info structure
+	//J_tIMAGE_INFO		m_CnvImageInfo;                               // Image info structure
 	
 	BITMAPINFO *bmpinfo;
-	int RecvFrame[MAX_CAMERAS];//当前接收到的帧数
+	int RecvFrame[MAX_CAMERAS];       //当前接收到的帧数
 	CWinThread* hThread[MAX_CAMERAS]; //存图片线程
 
 	//LOGPALETTE *pLogPal;   
-	//CPalette m_hPalete;   //调色板
+	//CPalette m_hPalete;             //调色板
 
-	unsigned int CtrLine; //控制显示的模式2行4列 还是1行8列
+	unsigned int CtrLine;             //控制显示的模式2行4列 还是1行8列
  
 	BOOL OpenFactoryAndCamera();                    
 	void CloseFactoryAndCamera();
@@ -107,6 +117,10 @@ public:
 
 	void LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,
 		int x,int y,int scaleX,int scaleY,
+		CheckToShow* checkShow,
+		int nStretchMode = COLORONCOLOR);
+	void LiveView_Cwj(J_tIMAGE_INFO * pAqImageInfo,BITMAPINFO *bmpinfo,
+		int x,int y,int scaleX,int scaleY,
 		int nStretchMode = COLORONCOLOR);
 
 	void InitializeControls();
@@ -114,18 +128,20 @@ public:
 
 	void ShowErrorMsg(CString message, J_STATUS_TYPE error);
 
+	//设置b_LBDown 状态
+	BOOL getLBDownState(CPoint point);
 
 // 实现
 protected:
 	HICON m_hIcon;
 	int   m_CameraCount;//实际相机个数
-	BOOL bt_on;//true:打开状态 让菜单按钮变灰
+	BOOL bt_on;         //true:打开状态 让菜单按钮变灰
 
 
 private:
 	unsigned int test_count_getImage[8];
 	
-	CSetValue *setDlg;//参数设置对话框
+	CSetValue *setDlg; //参数设置对话框
 	ImageInfo myImageInfo;
 	AdjustImage *adjustImage_C[MAX_CAMERAS];
 
@@ -157,6 +173,14 @@ public:
 	afx_msg void OnLink();
 	afx_msg void OnTest();
 	afx_msg void OnCreateproj();
+
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
+	afx_msg void OnCloseStream();
+	afx_msg void OnReboot();
+	afx_msg void OnLinkFlow();
+
 	static int SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo,int Count,
 		 const char* numCam,
 		 const char* path = NULL, const char* fileName = NULL);
@@ -186,9 +210,6 @@ public:
 	void EndControl(void);
 	void InitPathDir(CString dstDir, CString SubDir[], UINT_K length);//创建项目工程
 
-	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
-	afx_msg void OnCloseStream();
-	afx_msg void OnReboot();
-	afx_msg void OnLinkFlow();
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDblClk(UINT nFlags, CPoint point);
 };

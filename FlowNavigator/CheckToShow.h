@@ -23,8 +23,13 @@ private:
 	int mNum;
 	int mStart;
 	CRect mRect;
-	BOOL b_DbClk;
-	int CheckCamSign[MAX_CAMERAS];
+	BOOL  b_DbClk;
+	int   CheckCamSign[MAX_CAMERAS];  //保存要展示的相机编号
+	int   LBDownCheckCamSign;         //鼠标左击起始点所对应的原始相机编号
+	int   Number;                     //鼠标左击起始点所对应的当前顺序编号
+
+public:
+	int   showStartAndSize[4];        //数组中各元素含义依次为：原图起点x坐标；起点y坐标；宽；高   以上都是以原图左下角为原点
 
 public:
 	void initial();
@@ -33,15 +38,17 @@ public:
 
 	void setDoubleClk(BOOL b_DbClk);
 	BOOL getDoubleClk();
-	int getNumBySign();
+	int  getNumBySign();
 	void setNum(int num);
 	int  getNum();
 	void setStart(int start);
 	void setRect(CRect& rect);
 	int  getWidth(CRect& rect);
-	int  getHeight(CRect& rect, float Xreal = RAW_HEIGHT, float Yreal = RAW_WIDTH);
+	int  getHeight(float Xreal = 2048, float Yreal = 2560);
+	int  getHeight(CRect& rect, float Xreal = 2048, float Yreal = 2560);
 
-	//inActive = true：初始8列1行模式 
+	//inActive = true：初始8列1行模式
+	int  getStartHeight(BOOL inActive = FALSE);
 	int  getStartHeight(CRect &rect, BOOL inActive = FALSE);
 
 	//获取选中button数量以及开始位置
@@ -54,4 +61,13 @@ public:
 	int* getCheckCamSign();
 
 	void ChangeButtonState(CButton* bt[], int bt_num, int State);
+
+	//获取鼠标位置的原始和当前cam 编号
+	void ReturnSignByPosition(CPoint Point, int* originalSign, int* nowSign);
+
+	void setLBDownCheckCamSign(int sign);
+	int  getLBDownCheckCamSign();
+
+	void GenerateShowStartAndSize(CPoint PointStart, CPoint PointEnd);
+
 };

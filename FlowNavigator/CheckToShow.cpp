@@ -21,6 +21,13 @@ void CheckToShow::initial()
 	{
 		CheckCamSign[i] = -1;
 	}
+	LBDownCheckCamSign = -1;
+
+	int tempShow[4] = {0, 2048, 2560, -2048}; //实际上使得放大操作失效
+	for (int i = 0; i < 4; i++)
+	{
+		showStartAndSize[i] = tempShow[i];
+	}
 }
 
 CheckToShow::~CheckToShow(void)
@@ -98,10 +105,23 @@ int CheckToShow::getWidth(CRect& rect)
 	
 }
 
+int CheckToShow::getHeight(float Xreal, float Yreal)
+{
+	return getHeight(this->mRect, Xreal, Yreal);
+}
+
 int CheckToShow::getHeight(CRect& rect, float Xreal, float Yreal)
 {
 	//float Weight = RAW_HEIGHT/ RAW_WIDTH;
-	return getWidth(rect) * Xreal/ Yreal;
+	int x = Xreal;
+	int y = Yreal;
+	int height = getWidth(rect) * x / y;
+	return height;
+}
+
+int CheckToShow::getStartHeight(BOOL inActive /* = FALSE */)
+{
+	return getStartHeight(this->mRect, inActive);
 }
 
 int CheckToShow::getStartHeight(CRect &rect, BOOL inActive)
@@ -112,7 +132,8 @@ int CheckToShow::getStartHeight(CRect &rect, BOOL inActive)
 		int height = rect.Height() / 2 - showHeigh / 2;
 		return height;
 	}
-	return (rect.Height() / 2 -  getHeight(rect) / 2);
+	int startHeight = rect.Height() / 2 -  getHeight(rect) / 2;
+	return startHeight;
 }
 
 st_CheckResult CheckToShow::getCheckNum(CButton* bt[], int bt_num, BOOL setVarToThis)
@@ -182,4 +203,48 @@ void CheckToShow::ChangeButtonState(CButton* bt[], int bt_num, int State)
 	{
 		bt[i]->EnableWindow(State);
 	}
+}
+
+void CheckToShow::ReturnSignByPosition(CPoint Point, int* originalSign, int* nowSign)
+{
+	int startCam = -1;
+	int i = 0;
+	for (i =0; i < MAX_CAMERAS; i++)
+	{
+		if(Point.x < mRect.Width()/mNum * (1+i))
+		{
+			startCam = CheckCamSign[i];
+			break;
+		}
+	}
+
+	this->Number = i;
+	this->LBDownCheckCamSign = startCam;
+	*originalSign            = startCam;
+	*nowSign                 = i;
+}
+
+void CheckToShow::GenerateShowStartAndSize(CPoint PointStart, CPoint PointEnd)
+{
+	if (mRect == NULL)
+	{
+		return;
+	}
+	int singleWidth  = getWidth(mRect);
+	int singleHeight = getHeight(mRect);
+	this->showStartAndSize[0] = (PointStart.x - this->Number * singleWidth)          * 2560 / singleWidth;
+	this->showStartAndSize[1] = 2048 - (PointStart.y - getStartHeight(mRect, FALSE)) * 2048 / singleHeight; 
+	this->showStartAndSize[2] = (PointEnd.x - PointStart.x) * 2560 / singleWidth;
+	this->showStartAndSize[3] = (PointEnd.y - PointStart.y) * 2048 / singleHeight;
+}
+
+
+void CheckToShow::setLBDownCheckCamSign(int sign)
+{
+	this->LBDownCheckCamSign = sign;
+}
+
+int CheckToShow::getLBDownCheckCamSign()
+{
+	return this->LBDownCheckCamSign;
 }
