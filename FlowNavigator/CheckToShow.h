@@ -28,6 +28,11 @@ private:
 	int   LBDownCheckCamSign;         //鼠标左击起始点所对应的原始相机编号
 	int   Number;                     //鼠标左击起始点所对应的当前顺序编号
 
+	int   Xreal;                      //x方向实际包含的图像像素点
+	int   Yreal;                      //y方向实际包含的图像像素点
+	static int xLostPixel;            //由于放大 x方向舍弃未展示的像素点
+	static int yLostPixel;            //由于放大 y方向舍弃未展示的像素点
+
 public:
 	int   showStartAndSize[4];        //数组中各元素含义依次为：原图起点x坐标；起点y坐标；宽；高   以上都是以原图左下角为原点
 
@@ -67,6 +72,17 @@ public:
 
 	void setLBDownCheckCamSign(int sign);
 	int  getLBDownCheckCamSign();
+
+	//缩放后X方向， Y方向包含的实际原图像素
+	void setXRealPixel(int Xreal);
+	void setYRealPixel(int Xreal);
+
+	int  getXRealPixel();
+	int  getYRealPixel();
+
+	void setXLostPixel(int xLostPixel);
+	void setYLostPixel(int yLostPixel);
+
 
 	void GenerateShowStartAndSize(CPoint PointStart, CPoint PointEnd);
 

@@ -45,6 +45,9 @@ typedef int (__cdecl *HSPIV_MQD_MP_Proc)(int, float *, float *, int, int,
 typedef int (__cdecl *HSPIV_MQD_Proc)(float *, float *, int, int, 
 									  float *, float *, int *, 
 									  float *, float *, float *);
+typedef int (__cdecl *HSPIV_Cross_Correlation_MP_Proc)(int, float *, float *, int, int, 
+													   float *, float *, int *, 
+													   float *, float *, float *);
 typedef int (__cdecl *Unload_PIV_Images_Proc)();
 class ShowView
 {
@@ -89,6 +92,9 @@ public:
 	void setStretchMode(int nStretchMode);
 	int  getStretchMode();
 
+	void setCalcRange(int* paras, int xSmall = 0, int xLarge = 2560, int ySmall = 0, int yLarge = 2048, int step = 30);
+	void setChooseAlgorithm(int AlgorithmSign); // 0: HSPIV_MQD_MP  1: HSPIV_Cross_Correlation_MP
+
 private:
 	BITMAPINFO *bmpInfo;
 	CWnd *pWnd;
@@ -96,6 +102,8 @@ private:
 	int Ystart;
 	int Xreal;        //x方向实际像素长度
 	int Yreal;        //y方向实际像素长度
+
+	int AlgorithmSign;
 private:
 	int showNum;      //若double_in，则为8； double_out时为选中个数
 	int singleWidth;  //根据showNum得到的单个显示区域宽度
@@ -114,6 +122,13 @@ public:
 	float* pc;
 	int    mSizeX; //上述指针变量的"行" 
 	int    mSizeY; //上述指针变量的"列"
+
+	int    xSmall;
+	int    xLarge;
+	int    ySmall;
+	int    yLarge;
+	int    step;
+	HINSTANCE hinst;
 };
 extern void CreateMatrixByCol(float* px, float* py, int xSmall, int xLarge, int ySmall, int yLarge,
 							  int step);

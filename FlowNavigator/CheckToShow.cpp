@@ -1,6 +1,10 @@
 #include "StdAfx.h"
 #include "CheckToShow.h"
 
+
+int CheckToShow::xLostPixel = 0;
+int CheckToShow::yLostPixel = 0;
+
 CheckToShow::CheckToShow(void)
 {
 	mNum    = 0;
@@ -28,6 +32,9 @@ void CheckToShow::initial()
 	{
 		showStartAndSize[i] = tempShow[i];
 	}
+
+	Xreal = 2560;
+	Yreal = 2048;
 }
 
 CheckToShow::~CheckToShow(void)
@@ -223,7 +230,34 @@ void CheckToShow::ReturnSignByPosition(CPoint Point, int* originalSign, int* now
 	*originalSign            = startCam;
 	*nowSign                 = i;
 }
+void CheckToShow::setXRealPixel(int Xreal)
+{
+	this->Xreal = Xreal;
+}
 
+void CheckToShow::setYRealPixel(int Yreal)
+{
+	this->Yreal = Yreal;
+}
+void CheckToShow::setXLostPixel(int xLostPixel)
+{
+	this->xLostPixel = xLostPixel;
+}
+
+void CheckToShow::setYLostPixel(int yLostPixel)
+{
+	this->yLostPixel = yLostPixel;
+}
+
+int CheckToShow::getXRealPixel()
+{
+	return this->Xreal;
+}
+
+int CheckToShow::getYRealPixel()
+{
+	return this->Yreal;
+}
 void CheckToShow::GenerateShowStartAndSize(CPoint PointStart, CPoint PointEnd)
 {
 	if (mRect == NULL)
@@ -232,10 +266,19 @@ void CheckToShow::GenerateShowStartAndSize(CPoint PointStart, CPoint PointEnd)
 	}
 	int singleWidth  = getWidth(mRect);
 	int singleHeight = getHeight(mRect);
-	this->showStartAndSize[0] = (PointStart.x - this->Number * singleWidth)          * 2560 / singleWidth;
-	this->showStartAndSize[1] = 2048 - (PointStart.y - getStartHeight(mRect, FALSE)) * 2048 / singleHeight; 
-	this->showStartAndSize[2] = (PointEnd.x - PointStart.x) * 2560 / singleWidth;
-	this->showStartAndSize[3] = (PointEnd.y - PointStart.y) * 2048 / singleHeight;
+	int xTempLength  = (PointStart.x - this->Number * singleWidth)   * getXRealPixel() / singleWidth;
+	int yTempLength  = (PointStart.y - getStartHeight(mRect, FALSE)) * getYRealPixel() / singleHeight;
+
+	this->showStartAndSize[0] = xLostPixel +  xTempLength ;
+	this->showStartAndSize[1] = 2048 - yLostPixel-yTempLength; 
+	this->showStartAndSize[2] = (PointEnd.x - PointStart.x) * getXRealPixel() / singleWidth;
+	this->showStartAndSize[3] = (PointEnd.y - PointStart.y) * getYRealPixel() / singleHeight;
+
+	this->Xreal = showStartAndSize[2];
+	this->Yreal = showStartAndSize[3];
+
+	this->xLostPixel = xLostPixel + xTempLength;
+	this->yLostPixel = yLostPixel + yTempLength;
 }
 
 

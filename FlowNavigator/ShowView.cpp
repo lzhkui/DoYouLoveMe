@@ -108,8 +108,12 @@ showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE)
 	paras[0] = 32; paras[1] = 32; paras[2] = 1;paras[3] = 30;
 	paras[4] = -10;paras[5] = 10;paras[6] = -10;paras[7] = 10;
 
+	AlgorithmSign = 0;
 	number++;
 	TRACE(_T("++ShowView has %d \n"), number);
+
+	hinst = LoadLibraryEx(_T("hs_piv64.dll") , NULL, LOAD_WITH_ALTERED_SEARCH_PATH);//第一个参数后缀可以不加...
+	int result = GetLastError();
 }
 
 ShowView::~ShowView(void)
@@ -125,6 +129,7 @@ ShowView::~ShowView(void)
 	if(pu  != NULL){free(pu);  pu  = NULL;}
 	if(pv  != NULL){free(pv);  pv  = NULL;}
 	if(pc  != NULL){free(pc);  pc  = NULL;}
+	FreeLibrary(hinst);
 }
 
 BITMAPINFO* ShowView::getBmpInfo()
@@ -344,38 +349,64 @@ void ShowView::Get_float(int size)
 	}
 
 }
+
+void ShowView::setChooseAlgorithm(int AlgorithmSign)
+{
+
+	this->AlgorithmSign = AlgorithmSign;
+}
+
+void ShowView::setCalcRange(int* paras, int xSmall, int xLarge, int ySmall, int yLarge, int step)
+{
+	this->xSmall = xSmall;
+	this->xLarge = xLarge;
+	this->ySmall = ySmall;
+	this->yLarge = yLarge;
+	this->step   = step;
+
+	/*ASSERT(paras == NULL);*/
+	for (int i = 0; i < 8; i++)
+	{
+		this->paras[i] = paras[i];
+	}
+}
+
 void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuffSecond, int nBuffRow, int nBuffCol)
 {
 	//若没指定绝对路径，则关联动态库放在.h .cpp 位置
-	HINSTANCE hinst;
-	hinst = LoadLibraryEx(_T("hs_piv64.dll") , NULL, LOAD_WITH_ALTERED_SEARCH_PATH);//第一个参数后缀可以不加...
-	int result = GetLastError();
+// 	HINSTANCE hinst;
+// 	hinst = LoadLibraryEx(_T("hs_piv64.dll") , NULL, LOAD_WITH_ALTERED_SEARCH_PATH);//第一个参数后缀可以不加...
+// 	int result = GetLastError();
 
 	Load_PIV_Images_8bit_Proc Load_PIV_Images_8bit = (Load_PIV_Images_8bit_Proc)GetProcAddress(hinst, "Load_PIV_Images_8bit");
 	Unload_PIV_Images_Proc    Unload_PIV_Images    = (Unload_PIV_Images_Proc)GetProcAddress(hinst, "Unload_PIV_Images");
 	HSPIV_MQD_MP_Proc         HSPIV_MQD_MP         = (HSPIV_MQD_MP_Proc)GetProcAddress(hinst, "HSPIV_MQD_MP");
-	HSPIV_MQD_Proc            HSPIV_MQD            = (HSPIV_MQD_Proc)GetProcAddress(hinst,"HSPIV_MQD");
-	int xLarge = 2500;
-	int xSmall = 20;
-	int yLarge = 2000;
-	int ySmall = 20;
-	int step   = 30;
+	HSPIV_Cross_Correlation_MP_Proc HSPIV_Cross_Correlation_MP  = (HSPIV_Cross_Correlation_MP_Proc)GetProcAddress(hinst, "HSPIV_Cross_Correlation_MP");
+	//HSPIV_MQD_Proc            HSPIV_MQD            = (HSPIV_MQD_Proc)GetProcAddress(hinst,"HSPIV_MQD");
+
 	int nRow = (yLarge - ySmall) / step + 1;
 	int nCol = (xLarge - xSmall) / step + 1;
 
 	this->mSizeX = nRow;
 	this->mSizeY = nCol;
 
-	unsigned char* copy_pBuffFirst  = Matrix_T(pBuffFirst, nRow, nCol);
-	unsigned char* copy_pBuffSecond = Matrix_T(pBuffSecond, nRow, nCol);
+	unsigned char* copy_pBuffFirst  = Matrix_T(pBuffFirst, nBuffRow, nBuffCol);
+	unsigned char* copy_pBuffSecond = Matrix_T(pBuffSecond, nBuffRow, nBuffCol);
 
-	Load_PIV_Images_8bit(pBuffFirst, pBuffSecond, nBuffRow, nBuffCol);
+	Load_PIV_Images_8bit(copy_pBuffFirst, copy_pBuffSecond, nBuffRow, nBuffCol);
 	Get_float(nRow * nCol * sizeof(float));
 	CreateMatrixByRow(px, py, xSmall, xLarge, ySmall, yLarge, step);
 
-	HSPIV_MQD_MP(8, px, py, nRow, nCol, pue, pve, paras, pu, pv, pc);
+	if(AlgorithmSign == 0)
+	{
+		HSPIV_MQD_MP(8, px, py, nRow, nCol, pue, pve, paras, pu, pv, pc);
+	}
+	else if(AlgorithmSign == 1)
+	{
+		HSPIV_Cross_Correlation_MP(8, px, py, nRow, nCol, pue, pve, paras, pu, pv, pc);
+	}
 	Unload_PIV_Images();
-	FreeLibrary(hinst);
+	/*FreeLibrary(hinst);*/
 
 	free(copy_pBuffFirst);
 	copy_pBuffFirst = NULL;
@@ -459,8 +490,8 @@ void ShowView::DrawVectorArrow(POINT startPoint, POINT endPoint, CWnd* pWnd)
 	dc.LineTo(endPoint);
 
 	double PI = 3.1415926;
-	double t=PI/6; //箭头与直线夹角
-	double l=0.2; //箭头边长度占直线长度的百分比
+	double t=PI/4; //箭头与直线夹角
+	double l=0.4; //箭头边长度占直线长度的百分比
 
 	POINT arrowPoint;
 
@@ -475,4 +506,5 @@ void ShowView::DrawVectorArrow(POINT startPoint, POINT endPoint, CWnd* pWnd)
 	dc.LineTo(arrowPoint);
 
 	dc.SelectObject(&pOldPen);
+	::DeleteObject(pNewPen);
 }

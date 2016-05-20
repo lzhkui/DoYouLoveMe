@@ -407,6 +407,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SetPivArg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\SetSingleFrameValueDlg.cpp"
 				>
 			</File>
@@ -526,6 +530,10 @@
 			</File>
 			<File
 				RelativePath=".\Resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SetPivArg.h"
 				>
 			</File>
 			<File

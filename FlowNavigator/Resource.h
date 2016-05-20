@@ -21,6 +21,7 @@
 #define IDD_DIALOG3                     133
 #define IDD_DIALOG_SINGLEFRAME          134
 #define IDB_BITMAP1                     136
+#define IDD_DIALOG_PIVSET               137
 #define IDC_SLIDER1                     1000
 #define IDC_CurExposure                 1001
 #define IDC_MinExposure                 1002
@@ -41,6 +42,18 @@
 #define IDC_EDIT1                       1020
 #define IDC_EDIT2                       1021
 #define IDC_EDIT3                       1022
+#define IDC_ySmall                      1023
+#define IDC_ROW                         1024
+#define IDC_STEP                        1025
+#define IDC_DEFAULTARG_PIV              1026
+#define IDC_USECURRENT                  1027
+#define IDC_STARTCALC                   1028
+#define IDC_STOPCALC                    1029
+#define IDC_xSmall                      1030
+#define IDC_xLarge                      1031
+#define IDC_yLarge                      1032
+#define IDC_RADIO1                      1033
+#define IDC_RADIO2                      1034
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -88,14 +101,15 @@
 #define ID_CloseStream                  32815
 #define ID_SolveFlow                    32816
 #define ID_LinkFlow                     32817
+#define ID_32818                        32818
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        137
-#define _APS_NEXT_COMMAND_VALUE         32818
-#define _APS_NEXT_CONTROL_VALUE         1026
+#define _APS_NEXT_RESOURCE_VALUE        138
+#define _APS_NEXT_COMMAND_VALUE         32819
+#define _APS_NEXT_CONTROL_VALUE         1035
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

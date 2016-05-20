@@ -22,6 +22,7 @@
 #include "KGloabalVar.h"
 #include <afxext.h>
 #include "ZoomImage.h"
+#include "SetPivArg.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -61,6 +62,7 @@ public:
 	unsigned char *relateArr;
 
 	ShowView *showView;     //用于实时显示
+	ShowView *SV_AdjustArg; //校正线程传入参数
 	CButton* checkBt[MAX_CAMERAS];
 
 	CheckToShow* checkShow; //双击后的显示问题
@@ -134,16 +136,18 @@ public:
 // 实现
 protected:
 	HICON m_hIcon;
-	int   m_CameraCount;//实际相机个数
-	BOOL bt_on;         //true:打开状态 让菜单按钮变灰
+	int   m_CameraCount;       //实际相机个数
+	BOOL bt_on;                //true:打开状态 让菜单按钮变灰
 
 
 private:
 	unsigned int test_count_getImage[8];
 	
-	CSetValue *setDlg; //参数设置对话框
+	CSetValue *setDlg;         //参数设置对话框
 	ImageInfo myImageInfo;
 	AdjustImage *adjustImage_C[MAX_CAMERAS];
+	SetPivArg* setPivArg;      //piv算法参数设置
+
 
 	pImageNode head[MAX_CAMERAS];
 	pImageNode pImage[MAX_CAMERAS];

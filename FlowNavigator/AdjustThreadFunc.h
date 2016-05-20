@@ -22,8 +22,9 @@ struct st_ValidCls
 typedef struct st_ValidCls AdajustCLs;
 typedef struct st_ValidCls* pAdajustCLs;
 
-extern BOOL mAdjust;// true代表点击了图像校正按钮
+extern BOOL mAdjust;  // true代表点击了图像校正按钮
 extern BOOL AdjustING;
+extern int solveFlow; //1:开始流场计算 0：停止流场计算
 
 class AdjustThreadFunc
 {

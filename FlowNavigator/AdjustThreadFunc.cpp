@@ -6,6 +6,7 @@
 
 BOOL mAdjust = FALSE; // true代表点击了图像校正
 BOOL AdjustING = FALSE;
+int solveFlow = -1;   //1:开始流场计算 0：停止流场计算
 
 unsigned char* targetArray[MAX_CAMERAS] = {NULL};
 unsigned char* pair_targetArray[MAX_CAMERAS][2] = {{NULL,NULL}};
@@ -84,7 +85,10 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 		AdjustING = FALSE;
 
 		float beginGetTwo = clock();
-		
+
+		CRect rect;
+		m_pAdjustCls->pWnd->GetClientRect(&rect);
+		if(solveFlow == 1){
 		for (int i = 0; i < m_pAdjustCls->Count; i++)
 		{
 			int imageSize = (m_pAdjustCls->adjustImage_C[CheckCamSign[i]])->getImageSize();
@@ -105,20 +109,19 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 			}
 		}
 
-		CRect rect;
-		m_pAdjustCls->pWnd->GetClientRect(&rect);
-
 		InvalidateRect(m_pAdjustCls->pWnd->GetSafeHwnd(), &rect, TRUE);
 		for (int j = 0; j < m_pAdjustCls->Count; j++)
 		{
-			m_pAdjustCls->showView->LiveViewBySign(pair_targetArray[CheckCamSign[j]][0], CheckCamSign[j],
-				m_pAdjustCls->checkShow);
 			m_pAdjustCls->showView->GenerateVectorNum(pair_targetArray[CheckCamSign[j]][0], 
 				pair_targetArray[CheckCamSign[j]][1], 2048, 2560);
+
+			m_pAdjustCls->showView->LiveViewBySign(pair_targetArray[CheckCamSign[j]][0], CheckCamSign[j],
+				m_pAdjustCls->checkShow);
 
 			m_pAdjustCls->showView->DrawArrowPoisitionBySign(m_pAdjustCls->showView->px,m_pAdjustCls->showView->py, 
 				m_pAdjustCls->showView->pu,m_pAdjustCls->showView->pv,
 				m_pAdjustCls->showView->mSizeX,m_pAdjustCls->showView->mSizeY, j, m_pAdjustCls->checkShow);
+		}
 		}
 		float endGetTwo = clock();
 		TRACE("Get Two Image coast = %f\n",endGetTwo - beginGetTwo); 
@@ -162,11 +165,11 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 
 	for(int k = 0; k < m_pAdjustCls->Count; k++)
 	{
-		free (targetArray[k]);
-		targetArray[k] = NULL;
+		free (targetArray[CheckCamSign[k]]);
+		targetArray[CheckCamSign[k]] = NULL;
 
-		delete m_pAdjustCls->adjustImage_C[k];
-		m_pAdjustCls->adjustImage_C[k] = NULL;
+		delete m_pAdjustCls->adjustImage_C[CheckCamSign[k]];
+		m_pAdjustCls->adjustImage_C[CheckCamSign[k]] = NULL;
 
 		delete m_pAdjustCls->showView;
 		m_pAdjustCls->showView = NULL;

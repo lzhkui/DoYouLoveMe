@@ -19,8 +19,8 @@ using namespace BuildDir;     //建立项目目录
 J_tIMAGE_INFO m_CnvImageInfo[MAX_CAMERAS];
 
 //连续模式
-int /*Count,*/Count1,Count2,Count3,
-Count4,Count5,Count6,Count7;
+// int /*Count,*/Count1,Count2,Count3,
+// Count4,Count5,Count6,Count7;
 int Count[MAX_CAMERAS];       //控制采集线程，采集数量
 int Count_[MAX_CAMERAS];      //控制写入线程，写入的图片名称从Count_到1
 
@@ -196,7 +196,7 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	m_pAdjustCls     = (pAdajustCLs)malloc(sizeof(AdajustCLs));//校正线程传入参数
 	
 	checkShow        = new CheckToShow;
-	
+	SV_AdjustArg     = NULL;
 
 	// Initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
@@ -259,6 +259,8 @@ CFlowNavigatorDlg::~CFlowNavigatorDlg()
 	delete bmpinfo;
 	delete showView;
 	delete checkShow;
+	delete zoomImage;
+
 	if (m_pAdjustCls != NULL)
 	{
 		free(m_pAdjustCls);
@@ -2526,7 +2528,7 @@ void CFlowNavigatorDlg::OnContinuous()
 	}
 	samDlg->DoModal();
 	b_isContinuous = TRUE;
-	Count1=Count2=Count3=Count4=Count5=Count6=Count7=samDlg->Count;
+// 	Count1=Count2=Count3=Count4=Count5=Count6=Count7=samDlg->Count;
 	for (int i = 0; i < m_CameraCount; i++)
 	{
 		Count[i]  = samDlg->Count;
@@ -2617,6 +2619,25 @@ void CFlowNavigatorDlg::OnClose()
 	CDialog::OnClose();
 }
 
+void CFlowNavigatorDlg::OnLinkFlow()
+{
+	// TODO: 在此添加命令处理程序代码
+
+// 	//获取选中button数量以及开始位置
+// 	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
+// 
+// 	checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, FALSE);
+	if(!mAdjust) 
+		return;
+	setPivArg = SetPivArg::GetInstance();
+	setPivArg->setShowView(SV_AdjustArg);
+	setPivArg->copy_solveFlow = &solveFlow;
+	setPivArg->Create(IDD_DIALOG_PIVSET, this);
+	setPivArg->ShowWindow(SW_SHOW);
+	setPivArg->UpdateWindow();
+}
+
+
 void CFlowNavigatorDlg::OnAdjust()
 {
 	// TODO: 在此添加命令处理程序代码
@@ -2632,7 +2653,8 @@ void CFlowNavigatorDlg::OnAdjust()
 	{
 		m_pAdjustCls->adjustImage_C[j] = adjustImage_C[j];
 	}
-	m_pAdjustCls->showView = new ShowView(this);//
+	SV_AdjustArg = new ShowView(this);
+	m_pAdjustCls->showView = SV_AdjustArg;//
 	m_pAdjustCls->pWnd = this;
 
 	m_pAdjustCls->linkImage = new LinkImage();
@@ -2648,7 +2670,7 @@ void CFlowNavigatorDlg::OnAdjust()
 
 	::AfxBeginThread(AdjustThreadFunc::AdjustIm,m_pAdjustCls,THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 
-	//adjust线程正在计算，或者计算未完成时，停止adjust线程，后面再次打开线程_2016_05_10
+	//adjust线程正在计算，或者计算未完成时，停止adjust线程，后面再次打开线程BUG_2016_05_10
 	for (int j = 0; j < m_pAdjustCls->Count; j++)
 	{
 		Pair[j] = 2;
@@ -2787,8 +2809,10 @@ void CFlowNavigatorDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 
-	if(!b_LBDown || !getLBDownState(point))
+	//无效的左击按下 || 无效的右击抬起 || 后面两个往往是"点一下"导致的
+	if(!b_LBDown || !getLBDownState(point) || PointStart.x == PointEnd.x || PointStart.y == PointEnd.y)
 	{
+		b_LBDown = FALSE;
 		return;
 	}
 	PointEnd.x = point.x;
@@ -2871,7 +2895,7 @@ void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 
 	checkShow->setCheckCamSign(checkBt, MAX_CAMERAS);
 	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
-	checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, FALSE);
+	//checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, FALSE);
 
 	CRect rect;
 	GetClientRect(&rect);
@@ -2882,7 +2906,15 @@ void CFlowNavigatorDlg::OnRButtonDblClk(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 
+	if(DoubleClk != DOUBLECLK_OUT)
+	{
+		return;
+	}
 	CamSign = -1;
+	checkShow->setXLostPixel(0);
+	checkShow->setYLostPixel(0);
+	checkShow->setXRealPixel(2560);
+	checkShow->setYRealPixel(2048);
 	CDialog::OnRButtonDblClk(nFlags, point);
 }
 
@@ -2891,14 +2923,3 @@ void CFlowNavigatorDlg::OnReboot()
 	// TODO: 在此添加命令处理程序代码
 	OnCloseCamera();
 }
-
-void CFlowNavigatorDlg::OnLinkFlow()
-{
-	// TODO: 在此添加命令处理程序代码
-
-	//获取选中button数量以及开始位置
-	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
-
-	checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, FALSE);
-}
-

@@ -163,6 +163,33 @@ BEGIN
     EDITTEXT        IDC_EDIT3,114,96,72,14,ES_AUTOHSCROLL
 END
 
+IDD_DIALOG_PIVSET DIALOGEX 0, 0, 316, 182
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TRANSPARENT
+CAPTION "PIV参数设置"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CTEXT           "x起点：",IDC_STATIC,58,36,57,8
+    CTEXT           "x终点：",IDC_STATIC,58,57,57,8
+    CTEXT           "y起点：",IDC_STATIC,58,79,57,8
+    CTEXT           "y终点：",IDC_STATIC,58,100,57,8
+    CTEXT           "步长：",IDC_STATIC,58,121,57,8
+    CTEXT           "查询框行(列)：",IDC_STATIC,58,142,57,8
+    GROUPBOX        "",IDC_STATIC,24,18,276,135
+    PUSHBUTTON      "应用默认值",IDC_DEFAULTARG_PIV,228,36,50,14
+    PUSHBUTTON      "应用",IDC_USECURRENT,228,68,50,14
+    PUSHBUTTON      "开始计算",IDC_STARTCALC,228,100,50,14
+    PUSHBUTTON      "停止计算",IDC_STOPCALC,228,132,50,14
+    EDITTEXT        IDC_xSmall,143,36,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_xLarge,143,56,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ySmall,143,76,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_yLarge,143,96,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_STEP,143,116,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ROW,143,136,40,14,ES_AUTOHSCROLL
+    CONTROL         "算法1",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,70,6,36,10
+    CONTROL         "算法2",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,144,6,36,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -186,13 +213,13 @@ BEGIN
     BEGIN
         BLOCK "080403a8"
         BEGIN
-            VALUE "CompanyName", "TODO: <公司名>"
-            VALUE "FileDescription", "TODO: <文件说明>"
+            VALUE "CompanyName", "Hawksoft"
+            VALUE "FileDescription", "大范围表面流场"
             VALUE "FileVersion", "1.0.0.1"
             VALUE "InternalName", "FlowNavigator.exe"
-            VALUE "LegalCopyright", "TODO: (C) <公司名>。保留所有权利。"
+            VALUE "LegalCopyright", "Hawksoft保留所有权利。"
             VALUE "OriginalFilename", "FlowNavigator.exe"
-            VALUE "ProductName", "TODO: <产品名>"
+            VALUE "ProductName", "FlowNavigator"
             VALUE "ProductVersion", "1.0.0.1"
         END
     END
@@ -273,6 +300,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 176
     END
+
+    IDD_DIALOG_PIVSET, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 309
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 175
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -318,6 +353,8 @@ BEGIN
         MENUITEM "图像拼接",                        ID_Link
         MENUITEM "流场计算",                        ID_SolveFlow
         MENUITEM "流场拼接",                        ID_LinkFlow
+        MENUITEM SEPARATOR
+        MENUITEM "流场",                          ID_32818
         MENUITEM "test",                        ID_Test
     END
     MENUITEM "帮助",                          ID_32803
