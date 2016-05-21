@@ -322,7 +322,7 @@ BEGIN
     POPUP "项目"
     BEGIN
         MENUITEM "新建项目",                        ID_CreateProj
-        MENUITEM "打开项目",                        ID_32808
+        MENUITEM "打开项目",                        ID_OpenProj
     END
     POPUP "系统"
     BEGIN

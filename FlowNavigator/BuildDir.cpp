@@ -41,7 +41,7 @@ namespace BuildDir{
 		stdFile.Close();
 	}
 
-	ULONGLONG ReadTxt(CString pathDir, CString buf)
+	ULONGLONG ReadTxt(CString pathDir, CString& buf)
 	{
 		CFile file(pathDir, CFile::modeRead);
 		ULONGLONG len = file.GetLength();
@@ -50,7 +50,37 @@ namespace BuildDir{
 			return -1;
 		}
 
+		//这个是我用了write直接写入CString类型后，工程字符集是UNicode，存下来看到字符编码是UCS-2 little endian OVR（notepad显示的）
 		file.Read((LPTSTR)(LPCTSTR)buf, len);
+		/***若写入的是是windows 记事本写的用下面这个，Unicode下utf-8 utf-16都可以
+		char* tempBuff = new char[len];
+		file.Read(tempBuff, len);
+
+		USES_CONVERSION;
+		buf = A2W(tempBuff);
+
+		delete [] tempBuff;
+		***/
+		file.Close();
+		return len;
+	}
+
+	ULONGLONG ReadTxtUsual(CString pathDir, CString& buf)
+	{
+		CFile file(pathDir, CFile::modeRead);
+		ULONGLONG len = file.GetLength();
+		if (len <= 0)
+		{
+			return -1;
+		}
+
+		char* tempBuff = new char[len+1];
+		file.Read(tempBuff, len);
+
+		USES_CONVERSION;
+		buf = A2W(tempBuff);
+
+		delete [] tempBuff;
 		file.Close();
 		return len;
 	}
@@ -64,11 +94,28 @@ namespace BuildDir{
 		begin += markLength; 
 		result = buff.Mid(begin);
 
-		begin = result.Find(mark);
-		result = result.Left(begin);
-
+		begin = result.Find(mark);	
+		result = result.Left(begin);//begin == -1 result=""
 	}
-	void ParseConfig(CString pathDir, enum SetUpType type, CString& Result, CString buf)
+
+	void LoopFindMark(CString buf, CString mark, CString& result, int markLength, int loopCount)
+	{
+		int begin = -1;
+		if(loopCount > 0)
+		{
+			CString buff;
+			buff.Format(_T("%s"), buf);
+			begin = buff.Find(mark);
+
+			begin += markLength; 
+			result = buff.Mid(begin);
+			LoopFindMark(result, mark, result, markLength, loopCount-1);
+		}
+// 		begin = result.Find(mark);
+// 		result = result.Left(begin);
+	}
+
+	void ParseConfig(CString pathDir, enum SetUpType type, CString& Result, CString& buf)
 	{
 		ULONGLONG len = ReadTxt(pathDir, buf);
 
@@ -83,8 +130,10 @@ namespace BuildDir{
 		}
 
 		FindMark(buf, mark, Result, mark.GetLength());
-
 	}
+
+
+
 	void FileDialog_k(CString title, CString defaultFileName, CString pathDir, CString initContent)
 	{
 		CFileDialog fileD(FALSE,(LPCTSTR)".txt",defaultFileName,
@@ -117,7 +166,7 @@ namespace BuildDir{
 		return 0;
 	}
 
-	unsigned SelectDir( CString &strDir, void *hwnd/* = NULL*/)
+	unsigned SelectDir( CString &strDir, void *hwnd/* = NULL*/, BOOL hasCreateFile)
 	{
 		TCHAR szDir[MAX_PATH];
 		BROWSEINFO bi; 
@@ -127,7 +176,14 @@ namespace BuildDir{
 		bi.lpszTitle = _T("选择位置：");
 		bi.iImage = 0;
 
-		bi.ulFlags = BIF_USENEWUI | BIF_RETURNONLYFSDIRS;//BIF_USENEWUI： 多了一个新建文件夹选项 
+		if (hasCreateFile)
+		{
+			bi.ulFlags = BIF_USENEWUI | BIF_RETURNONLYFSDIRS;//BIF_USENEWUI： 多了一个新建文件夹选项 
+		}
+		else
+		{
+			bi.ulFlags = BIF_RETURNONLYFSDIRS;
+		}
 
 		//BIF_RETURNONLYFSDIRS 只返回文件系统中存在的文件夹  
 		//如果有给定路径，转到给定路径，否则默认bi.pidlRoot指定路径

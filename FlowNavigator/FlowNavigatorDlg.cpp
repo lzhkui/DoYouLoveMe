@@ -313,6 +313,7 @@ BEGIN_MESSAGE_MAP(CFlowNavigatorDlg, CDialog)
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_WM_RBUTTONDBLCLK()
+	ON_COMMAND(ID_OpenProj, &CFlowNavigatorDlg::OnOpenproj)
 END_MESSAGE_MAP()
 
 
@@ -2694,6 +2695,31 @@ void CFlowNavigatorDlg::OnTest()
 	b_isContinuous = FALSE;
 	b_isSingleFrame = FALSE;
 }
+void CFlowNavigatorDlg::OnOpenproj()
+{
+	// TODO: 在此添加命令处理程序代码
+	CString dstDir = DEFAULT_PATH;
+
+	CString SubDir[MAX_SUBDIR] = {_T("\\原始数据"), _T("\\图像拼接"), _T("\\流场拼接"), _T("\\配置文件")};
+
+	if(IDOK == SelectDir(dstDir,GetSafeHwnd(),FALSE))
+	{
+		if (dstDir == DEFAULT_PATH)
+		{
+			dstDir += _T("\\HawkSoftWorkSpace");
+			CreatePathDir(dstDir);
+			CTime time = CTime::GetCurrentTime();
+			CString Time = time.Format(_T("%Y%m%d%H%M%S"));
+			dstDir += _T("\\FlowNavigator") + Time;
+			CreatePathDir(dstDir);
+		}
+		TRACE(_T("project path: %s\n"), dstDir);
+		InitPathDir(dstDir, SubDir, MAX_SUBDIR);
+
+		SetWindowText(dstDir);
+		m_CurrentProPath = dstDir;
+	}
+}
 
 void CFlowNavigatorDlg::OnCreateproj()
 {
@@ -2702,7 +2728,7 @@ void CFlowNavigatorDlg::OnCreateproj()
 
 	CString SubDir[MAX_SUBDIR] = {_T("\\原始数据"), _T("\\图像拼接"), _T("\\流场拼接"), _T("\\配置文件")};
 
-	if(IDOK == SelectDir(dstDir,GetSafeHwnd()))
+	if(IDOK == SelectDir(dstDir,GetSafeHwnd(), TRUE))
 	{
 		if (dstDir == DEFAULT_PATH)
 		{
@@ -2923,3 +2949,4 @@ void CFlowNavigatorDlg::OnReboot()
 	// TODO: 在此添加命令处理程序代码
 	OnCloseCamera();
 }
+
