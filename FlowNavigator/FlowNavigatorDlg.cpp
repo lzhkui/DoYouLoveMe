@@ -558,9 +558,8 @@ BOOL CFlowNavigatorDlg::OpenFactoryAndCamera()
 
 		//设置初始帧率值，否则默认22帧，8台同时开，卡死
 	    J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[j],"AcquisitionFrameRate",&hNode);
-		J_Node_SetValueDouble(hNode,TRUE,10.0);
+		J_Node_SetValueDouble(hNode,TRUE,3.0);
 		
-
         
 		// Open stream
 		switch(j)
@@ -625,6 +624,8 @@ BOOL CFlowNavigatorDlg::OpenFactoryAndCamera()
 			return FALSE;
 		}
 	}
+
+	return TRUE;
 }
 
 void CFlowNavigatorDlg::CloseFactoryAndCamera()
@@ -1812,7 +1813,7 @@ void CFlowNavigatorDlg::LiveViewWnd(CWnd* pWnd, CheckToShow* checkShow, int sign
 	}
 	else
 	{
-		LiveView_Cwj(pAqImageInfo, bmpinfo, Weight*SrcWidth, startHeight, SrcWidth, SrcHeight, nStretchMode);
+		LiveView_Cwj(pAqImageInfo, bmpinfo, Weight*SrcWidth, startHeight, SrcWidth, SrcHeight);
 	}
 }
 
@@ -2642,15 +2643,25 @@ void CFlowNavigatorDlg::OnLinkFlow()
 void CFlowNavigatorDlg::OnAdjust()
 {
 	// TODO: 在此添加命令处理程序代码
-	relateArr = (unsigned char *)malloc(2560*2048*sizeof(char));
+	int adjImgSize = 2560*2048;
+	int xMin       = 0;
+	int xMax       = 2560;
+	int yMin       = 0;
+	int yMax       = 2048;
+	float L[2]     = {1,1};  
 	//这里以后加个if(图片数据类.图片数据==NULL) return；
-	for (int i = 0; i < m_CameraCount; i++)
+	for (int i = 0; i < MAX_CAMERAS; i++)
 	{
-		adjustImage_C[i] = new AdjustImage(2560*2048,relateArr);
+		relateArr[i] = (unsigned char *)malloc(adjImgSize*sizeof(char));
+
+		adjustImage_C[i] = new AdjustImage(2560*2048,relateArr[i]);
+		adjustImage_C[i]->setAdjustImageSize(adjImgSize);
+		adjustImage_C[i]->setSingleRange(xMin, xMax, yMin, yMax);
+		adjustImage_C[i]->setL(L);
 	}
 	mAdjust = true;
 	
-	for (int j = 0; j < m_CameraCount; j ++)
+	for (int j = 0; j < MAX_CAMERAS; j++)
 	{
 		m_pAdjustCls->adjustImage_C[j] = adjustImage_C[j];
 	}
@@ -2672,7 +2683,7 @@ void CFlowNavigatorDlg::OnAdjust()
 	::AfxBeginThread(AdjustThreadFunc::AdjustIm,m_pAdjustCls,THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 
 	//adjust线程正在计算，或者计算未完成时，停止adjust线程，后面再次打开线程BUG_2016_05_10
-	for (int j = 0; j < m_pAdjustCls->Count; j++)
+	for (unsigned int j = 0; j < m_pAdjustCls->Count; j++)
 	{
 		Pair[j] = 2;
 	}

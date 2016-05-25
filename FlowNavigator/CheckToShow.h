@@ -83,7 +83,7 @@ public:
 	void setXLostPixel(int xLostPixel);
 	void setYLostPixel(int yLostPixel);
 
-
+	//Ëõ·Å¿ØÖÆ
 	void GenerateShowStartAndSize(CPoint PointStart, CPoint PointEnd);
 
 };

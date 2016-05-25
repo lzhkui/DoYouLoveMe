@@ -5,47 +5,20 @@ BOOL mLink = FALSE;
 
 LinkImage::LinkImage(void)
 {
+	initial();
 }
 
 LinkImage::~LinkImage(void)
 {
-
+    Free_ImageHasSameHeight();
 }
 
-//冒泡排序
-void BubbleSortArray(int *RangeArray, unsigned int ArraySize)
+void LinkImage::initial()
 {
-	int tempIntNum;
-	int tempHead, tempTail;
-	int headDerection = 0;
-	int TailDerection = ArraySize -1;
-
-	while (headDerection < TailDerection)
+	for (int i = 0; i < MAX_CAMERAS; i++)
 	{
-		tempTail = TailDerection - 1;
-		TailDerection = 0;
-		for(tempHead = headDerection; tempHead <= tempTail; tempHead++)
-		{
-			if(RangeArray[tempHead] > RangeArray[tempHead + 1])
-			{
-				tempIntNum = RangeArray[tempHead];
-				RangeArray[tempHead] = RangeArray[tempHead + 1];
-				RangeArray[tempHead + 1] = tempIntNum;
-				TailDerection = tempHead; //总能选到最大的数字原来的位置也就是调换后最大数字前一位
-			}
-		}
-		tempTail = headDerection + 1;
-		headDerection = 0;
-		for (tempHead = TailDerection; tempHead >= tempTail; tempHead--)//从右边最大数字前一位开始到 最小数字的后一位
-		{
-			if (RangeArray[tempHead-1] > RangeArray[tempHead])
-			{
-				tempIntNum = RangeArray[tempHead];
-				RangeArray[tempHead] = RangeArray[tempHead - 1];
-				RangeArray[tempHead - 1] = tempIntNum;
-				headDerection = tempHead;
-			}
-		}
+		ImageHasSameHeight[i] = NULL;
+		adjustImage_C[i]        = NULL;
 	}
 }
 
@@ -248,5 +221,80 @@ LINK_TYPE_K LinkImage::SplitTwoMonoImage(st_IMAGE_INFO* pTwoImageInfo)
 			{
 				return UNDEFINED;
 			}
+	}
+}
+
+void LinkImage::Get_unCh(int sign, int size)
+{
+	if (ImageHasSameHeight[sign] == NULL)
+	{
+		ImageHasSameHeight[sign] = (unsigned char*)malloc(size);
+		ASSERT(ImageHasSameHeight[sign] != NULL);
+
+		memset(ImageHasSameHeight[sign], 0, size);
+	}
+}
+
+void LinkImage::Free_ImageHasSameHeight()
+{
+	for(int i = 0; i < MAX_CAMERAS; i++)
+	{
+		if (ImageHasSameHeight[i] != NULL)
+		{
+			free(ImageHasSameHeight[i]);
+			ImageHasSameHeight[i] = NULL;
+		}
+	}
+}
+
+void LinkImage::GenerateSameHeigth(AdjustImage* adjustImage, int sign)
+{
+	this->adjustImage_C[sign] = adjustImage;
+
+	int topZero        = adjustImage->getLenWithTop();
+	int ImageSize      = adjustImage->getXRange() * adjustImage->getYRange();
+	int DestImageSize  = adjustImage->getYClientRange() * adjustImage->getXRange();
+
+	unsigned char* imageInfo = adjustImage->getGeneratePair(0); //总是取第一张图进行拼接
+
+	Get_unCh(sign, DestImageSize*sizeof(unsigned char));
+	for (int i = topZero; i < (topZero + ImageSize); i++)
+	{
+		*(ImageHasSameHeight[sign] + topZero + i) = *(imageInfo + i);
+	}
+}
+
+void LinkImage::StartLink(int* checkSign, int checkSignNum)
+{
+	ASSERT(checkSign != NULL);
+
+	st_Range rangeF = {0};
+	st_Range rangeN = {0};
+
+	//到(checkSignNum - 2)即可，最后一个右边不需要重新调整
+	for (int i = 0; i < (checkSignNum - 2); i++)
+	{
+		rangeF = adjustImage_C[checkSign[i]]->getSingleRange();
+		rangeN = adjustImage_C[checkSign[i+1]]->getSingleRange();
+		//x方向，右半重合区
+		int xRightLen = (int)(rangeF.xMax - rangeN.xMin) / 
+			*(adjustImage_C[checkSign[i]]->getL());
+
+		//偷个懒 不计算y方向上重合的部分，直接将右半区重新赋值
+		//int yRangeLen = (int)();
+
+		int RowF     = adjustImage_C[checkSign[i]]->getYClientRange();//这个行数是被check的cam中YMax -YMin
+		int ColF     = adjustImage_C[checkSign[i]]->getXRange();
+		int ColN     = adjustImage_C[checkSign[i+1]]->getXRange();
+
+		int ColStart = ColF - xRightLen;
+		for(int nRow = 0; nRow < RowF; i++)
+		{
+			for(int nCol = ColStart; nCol < ColF; nCol++)
+			{
+				*(ImageHasSameHeight[checkSign[i]] + nCol + nRow*ColF) = *(ImageHasSameHeight[checkSign[i+1]]
+				+ nCol - ColStart + nRow * ColN);
+			}
+		}
 	}
 }

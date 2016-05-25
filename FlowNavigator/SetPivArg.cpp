@@ -8,6 +8,7 @@
 
 SetPivArg* SetPivArg::setPivArg = NULL;
 int SetPivArg::num = 0;
+int mLinkFlow = -1;
 // SetPivArg ¶Ô»°¿ò
 
 IMPLEMENT_DYNAMIC(SetPivArg, CDialog)

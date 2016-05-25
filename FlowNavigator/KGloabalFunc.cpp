@@ -51,10 +51,40 @@ unsigned char* Matrix_T(unsigned char* pBuff, int nRow, int nCol)
 	return copy_pBuff;
 }
 
-KGloabalFunc::KGloabalFunc(void)
-{
-}
 
-KGloabalFunc::~KGloabalFunc(void)
+//冒泡排序
+void BubbleSortArray(int *RangeArray, unsigned int ArraySize)
 {
+	int tempIntNum;
+	int tempHead, tempTail;
+	int headDerection = 0;
+	int TailDerection = ArraySize -1;
+
+	while (headDerection < TailDerection)
+	{
+		tempTail = TailDerection - 1;
+		TailDerection = 0;
+		for(tempHead = headDerection; tempHead <= tempTail; tempHead++)
+		{
+			if(RangeArray[tempHead] > RangeArray[tempHead + 1])
+			{
+				tempIntNum = RangeArray[tempHead];
+				RangeArray[tempHead] = RangeArray[tempHead + 1];
+				RangeArray[tempHead + 1] = tempIntNum;
+				TailDerection = tempHead; //总能选到最大的数字原来的位置也就是调换后最大数字前一位
+			}
+		}
+		tempTail = headDerection + 1;
+		headDerection = 0;
+		for (tempHead = TailDerection; tempHead >= tempTail; tempHead--)//从右边最大数字前一位开始到 最小数字的后一位
+		{
+			if (RangeArray[tempHead-1] > RangeArray[tempHead])
+			{
+				tempIntNum = RangeArray[tempHead];
+				RangeArray[tempHead] = RangeArray[tempHead - 1];
+				RangeArray[tempHead - 1] = tempIntNum;
+				headDerection = tempHead;
+			}
+		}
+	}
 }

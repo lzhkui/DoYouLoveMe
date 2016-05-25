@@ -2,7 +2,7 @@
 #include <Jai_Factory.h>
 #include "afxwin.h"
 #include "CheckToShow.h"
-
+#include "AdjustImage.h"
 
 /*显示函数传入结构体*/
 struct LiveView
@@ -58,6 +58,10 @@ public:
 	void setWidth(long width);
     void setHeight(long Height);
 
+
+	//根据校正后的实际物理位置展示
+	void LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustImage* adjustImage);
+
 	//根据sign展示图片位置，需要先调用setStartPosition
 	void LiveViewBySign(unsigned char* targetImage, int sign, CheckToShow* checkShow);
 
@@ -77,6 +81,7 @@ public:
 
 	BITMAPINFO* getBmpInfo();
 	void setStartPosition(int Xstart, int Ystart);
+	void setStartPosition(AdjustImage* adjustImage);
 	void setStartPosition(CheckToShow* checkShow, int sign);
 	int  getStartPositionX();
 	int  getStartPositionY();
@@ -84,9 +89,9 @@ public:
 	void DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v, 
 		int sizeX, int sizeY, unsigned int sign, CheckToShow* checkShow);
 	void DrawVectorArrow(POINT startPoint, POINT endPoint, CWnd* pWnd = NULL);
-	void GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuffSecond, int nBuffRow, int nBuffCol);
+	void GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuffSecond, int nBuffRow, int nBuffCol, int sign = 0);
 
-	void Get_float(int size);
+	void Get_float(int size, int sign);
 	void setXRealPixel(int Xreal);
 	void setYRealPixel(int Yreal);
 	void setStretchMode(int nStretchMode);
@@ -112,16 +117,16 @@ private:
 	int startHeight;  //相对客户区顶端的高度
 	int nStretchMode; //显示模式
 public:
-	float* px;
-	float* py;
-	float* pue;
-	float* pve;
+	float* px[MAX_CAMERAS];
+	float* py[MAX_CAMERAS];
+	float* pue[MAX_CAMERAS];
+	float* pve[MAX_CAMERAS];
 	int paras[8];
-	float* pu;
-	float* pv;
-	float* pc;
-	int    mSizeX; //上述指针变量的"行" 
-	int    mSizeY; //上述指针变量的"列"
+	float* pu[MAX_CAMERAS];
+	float* pv[MAX_CAMERAS];
+	float* pc[MAX_CAMERAS];
+	int    mSizeX[MAX_CAMERAS]; //上述指针变量的"行" 
+	int    mSizeY[MAX_CAMERAS]; //上述指针变量的"列"
 
 	int    xSmall;
 	int    xLarge;

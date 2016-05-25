@@ -281,7 +281,6 @@ void CheckToShow::GenerateShowStartAndSize(CPoint PointStart, CPoint PointEnd)
 	this->yLostPixel = yLostPixel + yTempLength;
 }
 
-
 void CheckToShow::setLBDownCheckCamSign(int sign)
 {
 	this->LBDownCheckCamSign = sign;

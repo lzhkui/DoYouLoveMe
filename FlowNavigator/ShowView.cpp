@@ -3,6 +3,7 @@
 #include <math.h>
 #include "KGlobalDefine.h"
 #include "KGloabalFunc.h"
+#include "KGloabalVar.h"
 
 void CreateMatrixByCol(float* px, float* py, int xSmall, int xLarge, int ySmall, int yLarge,
 					   int step)
@@ -98,13 +99,17 @@ showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE)
 
 	this->pWnd = pWnd;
 
-	px  = NULL;
-	py  = NULL;
-	pue = NULL;
-	pve = NULL;
-	pu  = NULL;
-	pv  = NULL;
-	pc  = NULL;
+	for(int i = 0; i < MAX_CAMERAS; i++)
+	{
+		px[i]  = NULL;
+		py[i]  = NULL;
+		pue[i] = NULL;
+		pve[i] = NULL;
+		pu[i]  = NULL;
+		pv[i]  = NULL;
+		pc[i]  = NULL;
+	}
+
 	paras[0] = 32; paras[1] = 32; paras[2] = 1;paras[3] = 30;
 	paras[4] = -10;paras[5] = 10;paras[6] = -10;paras[7] = 10;
 
@@ -122,13 +127,17 @@ ShowView::~ShowView(void)
 	number--;
 	TRACE(_T("--ShowView has %d \n"), number);
 
-	if(px  != NULL){free(px);  px  = NULL;} 
-	if(py  != NULL){free(py);  py  = NULL;}
-	if(pue != NULL){free(pue); pue  = NULL;}
-	if(pve != NULL){free(pve); pve  = NULL;}
-	if(pu  != NULL){free(pu);  pu  = NULL;}
-	if(pv  != NULL){free(pv);  pv  = NULL;}
-	if(pc  != NULL){free(pc);  pc  = NULL;}
+	for(int i = 0; i < MAX_CAMERAS; i++)
+	{
+		if(px[i]  != NULL){free(px[i]);  px[i]  = NULL;} 
+		if(py[i]  != NULL){free(py[i]);  py[i]  = NULL;}
+		if(pue[i] != NULL){free(pue[i]); pue[i] = NULL;}
+		if(pve[i] != NULL){free(pve[i]); pve[i] = NULL;}
+		if(pu[i]  != NULL){free(pu[i]);  pu[i]  = NULL;}
+		if(pv[i]  != NULL){free(pv[i]);  pv[i]  = NULL;}
+		if(pc[i]  != NULL){free(pc[i]);  pc[i]  = NULL;}
+
+	}
 	FreeLibrary(hinst);
 }
 
@@ -150,6 +159,15 @@ void ShowView::setStartPosition(int Xstart, int Ystart)
 {
 	this->Xstart = Xstart;
 	this->Ystart = Ystart;
+}
+
+void ShowView::setStartPosition(AdjustImage* adjustImage)
+{
+	CRect rect;
+	pWnd->GetClientRect(&rect);
+	st_StartPosition startPosition = adjustImage->getStartPosition(rect);
+	this->Xstart = startPosition.xStart;
+	this->Ystart = startPosition.yStart;
 }
 void ShowView::setStartPosition(CheckToShow* checkShow, int sign)
 {
@@ -186,6 +204,22 @@ int ShowView::getStretchMode()
 {
 	return this->nStretchMode;
 }
+
+void ShowView::LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustImage* adjustImage)
+{
+	setStartPosition(adjustImage);
+
+	int xRange = adjustImage->getXRange();
+	int yRange = adjustImage->getYClientRange();  //这个范围是实际校正后的范围
+
+	//设置bmpinfo
+	setWidth(xRange);
+	setHeight(yRange);
+
+	LiveView_CWJ(targetImage, bmpInfo, this->Xstart, this->Ystart, 
+		xRange, yRange, getStretchMode());
+}
+
 void ShowView::LiveViewBySign(unsigned char* targetImage, int sign, CheckToShow* checkShow)
 {
 	setStartPosition(checkShow, sign);
@@ -302,50 +336,49 @@ void ShowView::DrawText_k(st_DrawText *pDrawText)
 	//g.TranslateTransform(0,font.GetHeight(0.0f));/af/平移坐标系  
 	pDrawText->graph->DrawString(pDrawText->showStr, -1, &font, pointF, &brush);
 }
-void ShowView::Get_float(int size)
+void ShowView::Get_float(int size, int sign)
 {
-
-	if (px == NULL)
+	if (px[sign] == NULL)
 	{
-		px = (float*)malloc(size);
+		px[sign] = (float*)malloc(size);
 		//px = new float[size];   //不知为何new float的size 难道还要加sizeof（float）？？
-		memset(px, 0, size);
+		memset(px[sign], 0, size);
 	}
-	if (py == NULL)
+	if (py[sign] == NULL)
 	{
-		py = (float*)malloc(size);
+		py[sign] = (float*)malloc(size);
 		//py = new float[size];
-		memset(py, 0, size);
+		memset(py[sign], 0, size);
 	}
-	if (pue == NULL)
+	if (pue[sign] == NULL)
 	{
-		pue = (float*)malloc(size);
+		pue[sign] = (float*)malloc(size);
 		//pue = new float[size];
-		memset(pue, 0, size);
+		memset(pue[sign], 0, size);
 	}
-	if (pve == NULL)
+	if (pve[sign] == NULL)
 	{
-		pve = (float*)malloc(size);
+		pve[sign] = (float*)malloc(size);
 		//pve = new float[size];
-		memset(pve, 0, size);
+		memset(pve[sign], 0, size);
 	}
-	if (pu == NULL)
+	if (pu[sign] == NULL)
 	{
-		pu = (float*)malloc(size);
+		pu[sign] = (float*)malloc(size);
 		//pu = new float[size];
-		memset(pu, 0, size);
+		memset(pu[sign], 0, size);
 	}
-	if (pv == NULL)
+	if (pv[sign] == NULL)
 	{
-		pv = (float*)malloc(size);
+		pv[sign] = (float*)malloc(size);
 		//pv = new float[size];
-		memset(pv, 0, size);
+		memset(pv[sign], 0, size);
 	}
-	if (pc == NULL)
+	if (pc[sign] == NULL)
 	{
-		pc = (float*)malloc(size);
+		pc[sign] = (float*)malloc(size);
 		//pc = new float[size];
-		memset(pc, 0, size);
+		memset(pc[sign], 0, size);
 	}
 
 }
@@ -371,7 +404,7 @@ void ShowView::setCalcRange(int* paras, int xSmall, int xLarge, int ySmall, int 
 	}
 }
 
-void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuffSecond, int nBuffRow, int nBuffCol)
+void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuffSecond, int nBuffRow, int nBuffCol, int sign)
 {
 	//若没指定绝对路径，则关联动态库放在.h .cpp 位置
 // 	HINSTANCE hinst;
@@ -384,26 +417,31 @@ void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuff
 	HSPIV_Cross_Correlation_MP_Proc HSPIV_Cross_Correlation_MP  = (HSPIV_Cross_Correlation_MP_Proc)GetProcAddress(hinst, "HSPIV_Cross_Correlation_MP");
 	//HSPIV_MQD_Proc            HSPIV_MQD            = (HSPIV_MQD_Proc)GetProcAddress(hinst,"HSPIV_MQD");
 
+	yLarge   = nBuffRow;
+	ySmall   = 0;
+	xLarge   = nBuffCol;
+	xSmall   = 0;
+
 	int nRow = (yLarge - ySmall) / step + 1;
 	int nCol = (xLarge - xSmall) / step + 1;
 
-	this->mSizeX = nRow;
-	this->mSizeY = nCol;
+	this->mSizeX[sign] = nRow;
+	this->mSizeY[sign] = nCol;
 
 	unsigned char* copy_pBuffFirst  = Matrix_T(pBuffFirst, nBuffRow, nBuffCol);
 	unsigned char* copy_pBuffSecond = Matrix_T(pBuffSecond, nBuffRow, nBuffCol);
 
 	Load_PIV_Images_8bit(copy_pBuffFirst, copy_pBuffSecond, nBuffRow, nBuffCol);
-	Get_float(nRow * nCol * sizeof(float));
-	CreateMatrixByRow(px, py, xSmall, xLarge, ySmall, yLarge, step);
+	Get_float(nRow * nCol * sizeof(float), sign);
+	CreateMatrixByRow(px[sign], py[sign], xSmall, xLarge, ySmall, yLarge, step);
 
 	if(AlgorithmSign == 0)
 	{
-		HSPIV_MQD_MP(8, px, py, nRow, nCol, pue, pve, paras, pu, pv, pc);
+		HSPIV_MQD_MP(8, px[sign], py[sign], nRow, nCol, pue[sign], pve[sign], paras, pu[sign], pv[sign], pc[sign]);
 	}
 	else if(AlgorithmSign == 1)
 	{
-		HSPIV_Cross_Correlation_MP(8, px, py, nRow, nCol, pue, pve, paras, pu, pv, pc);
+		HSPIV_Cross_Correlation_MP(8, px[sign], py[sign], nRow, nCol, pue[sign], pve[sign], paras, pu[sign], pv[sign], pc[sign]);
 	}
 	Unload_PIV_Images();
 	/*FreeLibrary(hinst);*/

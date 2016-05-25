@@ -3,6 +3,9 @@
 #include "ShowView.h"
 // SetPivArg 对话框
 
+
+extern int mLinkFlow; //-1:未开始流场拼接
+
 class SetPivArg : public CDialog
 {
 	DECLARE_DYNAMIC(SetPivArg)

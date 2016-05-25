@@ -1,6 +1,11 @@
 #pragma once
 
 #include "afxwin.h"
+#include "AdjustImage.h"
+#include "KGlobalDefine.h"
+
+// #define SOLVEFLOW 1
+// #define NO_SOLVEFLOW 0
 
 //拼接两张灰度图片是否成功
 enum LINK_TYPE_K
@@ -49,6 +54,24 @@ struct st_IMAGE_INFO_k
 typedef struct st_IMAGE_INFO_k st_IMAGE_INFO;
 typedef struct st_IMAGE_INFO_k* pst_IMAGE_INFO;
 
+struct st_ImageInfo_k
+{
+	unsigned int imageHeight1;
+	int RangeMin1;
+	int RangeMax1;
+
+	unsigned int imageHeight12;
+	int RangeMin2;
+	int RangeMax2;
+
+	unsigned int outHeight;
+
+	unsigned char *pImageBuff1;
+	unsigned char *pImageBuff2;
+
+	unsigned char *pOutImage;
+};
+
 extern BOOL mLink;
 
 class LinkImage
@@ -56,6 +79,7 @@ class LinkImage
 public:
 	LinkImage(void);
 	~LinkImage(void);
+	void initial();
 
 	LINK_TYPE_K isTwoImageRelated(int RangeMin1,int RangeMax1,int RangeMin2,int RangeMax2);
 
@@ -72,5 +96,14 @@ public:
 	/*拼接两张灰度图*/
 	LINK_TYPE_K SplitTwoMonoImage(st_IMAGE_INFO* pTwoImageInfo);
 
+	//生成同高度图片
+	void Get_unCh(int sign, int size);
+	void Free_ImageHasSameHeight();
+	void GenerateSameHeigth(AdjustImage* adjustImage, int sign);
+	void StartLink(int* checkSign, int checkSignNum);
+
+private:
+	unsigned char* ImageHasSameHeight[MAX_CAMERAS];
+	AdjustImage* adjustImage_C[MAX_CAMERAS];
 
 };

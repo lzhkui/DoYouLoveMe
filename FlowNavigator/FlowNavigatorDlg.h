@@ -59,7 +59,7 @@ public:
 
 	//图像校正线程传入参数
 	pAdajustCLs m_pAdjustCls;
-	unsigned char *relateArr;
+	unsigned char *relateArr[MAX_CAMERAS];
 
 	ShowView *showView;     //用于实时显示
 	ShowView *SV_AdjustArg; //校正线程传入参数
