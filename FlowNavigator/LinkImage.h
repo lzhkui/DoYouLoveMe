@@ -2,6 +2,7 @@
 
 #include "afxwin.h"
 #include "AdjustImage.h"
+#include "ShowView.h"
 #include "KGlobalDefine.h"
 
 // #define SOLVEFLOW 1
@@ -102,8 +103,17 @@ public:
 	void GenerateSameHeigth(AdjustImage* adjustImage, int sign);
 	void StartLink(int* checkSign, int checkSignNum);
 
+	//扩展pu pv 成与生成图片"同高度"，并不是说行列相等，只是基于图片高度，生成的另一个高度
+	void Get_Float(int sign, int size);
+	void GenerateSameHeigth(ShowView* showView, AdjustImage* adjustImage, int sign);
+	void StartLink(ShowView* showView, int* checkSign, int checkSignNum);
+
 private:
 	unsigned char* ImageHasSameHeight[MAX_CAMERAS];
 	AdjustImage* adjustImage_C[MAX_CAMERAS];
+	float* pu[MAX_CAMERAS];
+	float* pv[MAX_CAMERAS];
 
+	int nRow;                  //上述指针变量分配的个数
+	int nCol;
 };

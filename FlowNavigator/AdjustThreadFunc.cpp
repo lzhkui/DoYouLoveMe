@@ -162,7 +162,7 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 				Pair[CheckCamSign[j]] = 2;
 			}
 		}//end of if(solveFlow == 1)
-		else if(mLink)
+		else 
 		{			
 			AdjustING = TRUE;
 			for (int j = 0; j < m_pAdjustCls->Count; j++)

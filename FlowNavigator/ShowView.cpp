@@ -509,7 +509,6 @@ void ShowView::DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v
 			endPoint.y = (int)yEnd;
 			//endPoint = (xEnd, yEnd);
 			DrawVectorArrow(startPoint, endPoint, this->pWnd);
-
 		}
 	}
 }

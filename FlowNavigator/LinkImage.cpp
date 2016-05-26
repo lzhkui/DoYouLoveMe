@@ -18,7 +18,9 @@ void LinkImage::initial()
 	for (int i = 0; i < MAX_CAMERAS; i++)
 	{
 		ImageHasSameHeight[i] = NULL;
-		adjustImage_C[i]        = NULL;
+		adjustImage_C[i]      = NULL;
+		pu[i]                 = NULL;
+		pv[i]                 = NULL;
 	}
 }
 
@@ -260,7 +262,7 @@ void LinkImage::GenerateSameHeigth(AdjustImage* adjustImage, int sign)
 	Get_unCh(sign, DestImageSize*sizeof(unsigned char));
 	for (int i = topZero; i < (topZero + ImageSize); i++)
 	{
-		*(ImageHasSameHeight[sign] + topZero + i) = *(imageInfo + i);
+		*(ImageHasSameHeight[sign] + i) = *(imageInfo + i - topZero);
 	}
 }
 
@@ -270,6 +272,21 @@ void LinkImage::StartLink(int* checkSign, int checkSignNum)
 
 	st_Range rangeF = {0};
 	st_Range rangeN = {0};
+	
+	int xRightLen= -1; 
+	int ColF     = 0;
+	int ColN     = 0;
+
+	//计算未重合区域
+	int Row      = -1;
+	int RowStart = 0;
+	int ColStart = 0;
+
+	//计算重合区域
+	int RowCover = -1;
+	int RowStartCover = 0;
+	int ColStartCover = 0;
+	int rightColStartCover = 0; //拼接线，在右侧图中的起始列数
 
 	//到(checkSignNum - 2)即可，最后一个右边不需要重新调整
 	for (int i = 0; i < (checkSignNum - 2); i++)
@@ -277,18 +294,37 @@ void LinkImage::StartLink(int* checkSign, int checkSignNum)
 		rangeF = adjustImage_C[checkSign[i]]->getSingleRange();
 		rangeN = adjustImage_C[checkSign[i+1]]->getSingleRange();
 		//x方向，右半重合区
-		int xRightLen = (int)(rangeF.xMax - rangeN.xMin) / 
-			*(adjustImage_C[checkSign[i]]->getL());
+		xRightLen = (int)((rangeF.xMax - rangeN.xMin) / 
+			*(adjustImage_C[checkSign[i]]->getL()));
 
-		//偷个懒 不计算y方向上重合的部分，直接将右半区重新赋值
-		//int yRangeLen = (int)();
+		ColF      = adjustImage_C[checkSign[i]]->getXRange();
+		ColN      = adjustImage_C[checkSign[i+1]]->getXRange();
 
-		int RowF     = adjustImage_C[checkSign[i]]->getYClientRange();//这个行数是被check的cam中YMax -YMin
-		int ColF     = adjustImage_C[checkSign[i]]->getXRange();
-		int ColN     = adjustImage_C[checkSign[i+1]]->getXRange();
 
-		int ColStart = ColF - xRightLen;
-		for(int nRow = 0; nRow < RowF; i++)
+		//未重合部分右边图赋值到左边图
+		if(rangeF.yMax < rangeN.yMax)
+		{
+			RowStart = adjustImage_C[checkSign[i+1]]->getLenWithTop();
+			Row      = adjustImage_C[checkSign[i]]->getLenWithTop();
+
+			RowStartCover = adjustImage_C[checkSign[i]]->getLenWithTop();
+			RowCover      = adjustImage_C[checkSign[i+1]]->getLenWithTop() + adjustImage_C[checkSign[i+1]]->getYRange();
+		}
+		else if(rangeF.yMin > rangeN.yMin)
+		{
+			RowStart = adjustImage_C[checkSign[i]]->getLenWithTop() + adjustImage_C[checkSign[i]]->getYRange();
+			Row      = adjustImage_C[checkSign[i+1]]->getLenWithTop() + adjustImage_C[checkSign[i+1]]->getYRange();
+
+			RowStartCover = adjustImage_C[checkSign[i+1]]->getLenWithTop();
+			RowCover      = adjustImage_C[checkSign[i]]->getLenWithTop() + adjustImage_C[checkSign[i]]->getYRange();
+		}
+
+		ColStart  = ColF - xRightLen;
+
+		ColStartCover = adjustImage_C[checkSign[i]]->getSplitLinePixel();
+
+		rightColStartCover = ColStartCover - (rangeN.xMin - rangeF.xMin) / *(adjustImage_C[checkSign[i]]->getL());
+		for(int nRow = RowStart; nRow < Row; nRow++)
 		{
 			for(int nCol = ColStart; nCol < ColF; nCol++)
 			{
@@ -296,5 +332,61 @@ void LinkImage::StartLink(int* checkSign, int checkSignNum)
 				+ nCol - ColStart + nRow * ColN);
 			}
 		}
+
+		for (int nRow = RowStartCover; nRow < RowCover; nRow++)
+		{
+			for (int nCol = ColStartCover; nCol < ColF; nCol++)
+			{
+				*(ImageHasSameHeight[checkSign[i]] + nCol + nRow*ColF) = *(ImageHasSameHeight[checkSign[i+1]] +
+					rightColStartCover + nCol - ColStartCover + nRow*ColN);
+			}
+		}
 	}
+}
+
+void LinkImage::Get_Float(int sign, int size)
+{
+	if (pu[sign] == NULL)
+	{
+		pu[sign] = (float*)malloc(size);
+		//pu = new float[size];
+		memset(pu[sign], 0, size);
+	}
+	if (pv[sign] == NULL)
+	{
+		pv[sign] = (float*)malloc(size);
+		//pv = new float[size];
+		memset(pv[sign], 0, size);
+	}
+}
+
+void LinkImage::GenerateSameHeigth(ShowView* showView, AdjustImage* adjustImage, int sign)
+{
+	this->adjustImage_C[sign] = adjustImage;
+	 int DestImageSize  = adjustImage->getYClientRange() * adjustImage->getXRange();
+
+	this->nRow = (int)(adjustImage->getYClientRange() / showView->step + 1);
+	this->nCol = (int)(adjustImage->getXRange() / showView->step + 1);
+
+	int topZero = (int)(adjustImage->getLenWithTop() / showView->step + 1);
+	int srcSize = showView->mSizeX[sign] * showView->mSizeY[sign];
+
+	Get_Float(sign, nRow * nCol * sizeof(float));
+
+	for (int i = topZero; i < topZero + srcSize; i++)
+	{
+		*(pu[sign] + i) = *(showView->pu[sign] + i - topZero);
+		*(pv[sign] + i) = *(showView->pv[sign] + i - topZero);
+	}
+}
+
+void LinkImage::StartLink(ShowView* showView, int* checkSign, int checkSignNum)
+{
+	int ColStartCover = 0;
+
+	for (int i = 0; i < checkSignNum - 2; i++)
+	{
+		ColStartCover = adjustImage_C[checkSign[i]]->getSplitLinePixel();
+	}
+
 }

@@ -37,6 +37,8 @@ void AdjustImage::initialAdjust()
 	{
 		L[i] = 0;
 	}
+
+	splitLine = 0;
 }
 
 AdjustImage::~AdjustImage(void)
@@ -313,4 +315,19 @@ st_StartPosition AdjustImage::getStartPosition(CRect rect)
 		rect.Height() / (this->m_stClientRange.yMax - this->m_stClientRange.yMin));
 
 	return this->m_stStartPosition;
+}
+
+void AdjustImage::setSplitLine(float splitLine)
+{
+	this->splitLine = splitLine;
+}
+
+float AdjustImage::getSplitLine()
+{
+	return (this->splitLine - this->m_stRange.xMin);
+}
+
+int AdjustImage::getSplitLinePixel()
+{
+	return (int)(this->splitLine / this->L[0]);
 }
