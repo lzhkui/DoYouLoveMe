@@ -67,11 +67,11 @@ public:
 	bool isMallocOk(J_tIMAGE_INFO* pAqImageInfo);
 
 	//单个相机的原始实际范围
-	void setSingleRange(float xMin, float xMax, float yMin, float yMax);
+	void     setSingleRange(float xMin, float xMax, float yMin, float yMax);
 	st_Range getSingleRange();
 
 	//所谓的“分辨率”，即1像素对应的实际物理距离
-	void  setL(float* L);
+	void   setL(float* L);
 	float* getL();
 	//得到以像素为单位的范围
 	int getXRange();
@@ -80,8 +80,8 @@ public:
 	//拼接后的范围
 	void setAdjustXRange(int AdjustXMin, int AdjustXMax);
 	void setAdjustYRange(int AdjustYMin, int AdjustYMax);
-	int getAdjustXRange();
-	int getAdjustYRange();
+	int  getAdjustXRange();
+	int  getAdjustYRange();
 
 	//实际校正后的范围
 	void setClientRange(float xMin, float xMax, float yMin, float yMax);
@@ -95,8 +95,10 @@ public:
 	int getLenWithTop();
 
 	st_StartPosition getStartPosition(CRect rect);
+	st_StartPosition getStartPosition(st_Base base);
 
-	void setSplitLine(float splitLine);
+
+	void  setSplitLine(float splitLine);
 	float getSplitLine();
-	int getSplitLinePixel();
+	int   getSplitLinePixel();
 };

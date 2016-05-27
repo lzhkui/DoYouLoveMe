@@ -4,7 +4,7 @@
 #include "hs_piv.h"
 #include "KGloabalFunc.h"
 
-#define KDEBUG_ADJUST 0
+#define KDEBUG_ADJUST 1
 
 BOOL mAdjust = FALSE; // true代表点击了图像校正
 BOOL AdjustING = FALSE;
@@ -69,9 +69,16 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 			Sleep(1000);
 		}
 	}
+
+	//拿到这的原因是 在校正时最小化 ，rect范围都是0 ..._Bug20160527
+	CRect rect;
+	m_pAdjustCls->pWnd->GetClientRect(&rect);
+
 	while(mAdjust)
 	{
 		TRACE("begin adjust!\n");
+// 		CRect rect;
+// 		m_pAdjustCls->pWnd->GetClientRect(&rect);
 
 		st_Range m_stRange = {0};
 		float tempYmax = 0;
@@ -86,14 +93,29 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 			tempXmax  = (tempXmax < m_stRange.xMax) ? m_stRange.xMax : tempXmax;
 			tempXmin  = (tempXmin > m_stRange.xMin) ? m_stRange.xMin : tempXmin;
 		}
+		float I   = (tempYmax - tempYmin) / (tempXmax - tempXmin);
+		float I_0 = rect.Height() / rect.Width();
+
+		m_pAdjustCls->showView->setSacle(I);
+		if(I < I_0)
+		{
+			m_pAdjustCls->showView->setCurrentBase(BASE_ONWIDTH);
+		}
+		else if(I > I_0)
+		{
+			m_pAdjustCls->showView->setCurrentBase(BASE_ONHEIGHT);
+		}
+		else if(I == I_0)
+		{
+			m_pAdjustCls->showView->setCurrentBase(BASE_SAME);
+		}
+
 		for(int i =0; i < m_pAdjustCls->Count; i++)
 		{
 			m_pAdjustCls->adjustImage_C[CheckCamSign[i]]->setClientRange(tempXmin, tempXmax, tempYmin, tempYmax);
 		}
 
-		CRect rect;
-		m_pAdjustCls->pWnd->GetClientRect(&rect);
-
+		
 		if(solveFlow == 1)
 		{
 			float beginGetTwo = clock();
@@ -149,6 +171,9 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 				m_pAdjustCls->linkImage->GenerateSameHeigth(m_pAdjustCls->adjustImage_C[CheckCamSign[j]],CheckCamSign[j]);
 				m_pAdjustCls->showView->LiveViewBySign(pair[0], CheckCamSign[j],
 					m_pAdjustCls->checkShow);
+				m_pAdjustCls->showView->DrawArrowPoisitionBySign(m_pAdjustCls->showView->px[CheckCamSign[j]],m_pAdjustCls->showView->py[CheckCamSign[j]], 
+					m_pAdjustCls->showView->pu[CheckCamSign[j]],m_pAdjustCls->showView->pv[CheckCamSign[j]],
+					m_pAdjustCls->showView->mSizeX[CheckCamSign[j]],m_pAdjustCls->showView->mSizeY[CheckCamSign[j]], j, m_pAdjustCls->checkShow);
 
 #endif
 			}
@@ -162,7 +187,7 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 				Pair[CheckCamSign[j]] = 2;
 			}
 		}//end of if(solveFlow == 1)
-		else 
+		else if(mLink)
 		{			
 			AdjustING = TRUE;
 			for (int j = 0; j < m_pAdjustCls->Count; j++)

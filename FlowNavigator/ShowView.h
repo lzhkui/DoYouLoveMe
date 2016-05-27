@@ -3,7 +3,11 @@
 #include "afxwin.h"
 #include "CheckToShow.h"
 #include "AdjustImage.h"
+#include "KGloabalVar.h"
 
+#define BASE_ONWIDTH  0  //以宽为基准缩放
+#define BASE_ONHEIGHT 1  //以高为基准缩放
+#define BASE_SAME     2  //宽高比与rect宽高比例相同
 /*显示函数传入结构体*/
 struct LiveView
 {
@@ -86,8 +90,16 @@ public:
 	int  getStartPositionX();
 	int  getStartPositionY();
 
+	//找u v的max
+	void FindMaxUV(int sign);
+	//找最大长度矢量箭头，使得展示无量纲化
+	void FindMaxArrowLen(int sign);
+
 	void DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v, 
 		int sizeX, int sizeY, unsigned int sign, CheckToShow* checkShow);
+
+	void DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign);
+
 	void DrawVectorArrow(POINT startPoint, POINT endPoint, CWnd* pWnd = NULL);
 	void GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuffSecond, int nBuffRow, int nBuffCol, int sign = 0);
 
@@ -100,6 +112,13 @@ public:
 	void setCalcRange(int* paras, int xSmall = 0, int xLarge = 2560, int ySmall = 0, int yLarge = 2048, int step = 30);
 	void setChooseAlgorithm(int AlgorithmSign); // 0: HSPIV_MQD_MP  1: HSPIV_Cross_Correlation_MP
 
+	//设置当前以宽，还是以高为基准
+	void setCurrentBase(int base);//BASE_ONWIDTH BASE_ONHEIGHT BASE_SAME
+	void setSacle(float I);
+	int  getCurrentBase();
+	st_Base getCurrentLen(CRect rect);
+
+
 private:
 	BITMAPINFO *bmpInfo;
 	CWnd *pWnd;
@@ -109,6 +128,11 @@ private:
 	int Yreal;        //y方向实际像素长度
 
 	int AlgorithmSign;
+
+	float I;            //校正后高：宽 比例
+	int base;         //BASE_ONWIDTH BASE_ONHEIGHT BASE_SAME
+	st_Base st_base;
+// 	st_Base baseLen;
 private:
 	int showNum;      //若double_in，则为8； double_out时为选中个数
 	int singleWidth;  //根据showNum得到的单个显示区域宽度
@@ -116,6 +140,10 @@ private:
 	BOOL DbClk;       //double_in时: false   double_out时：true
 	int startHeight;  //相对客户区顶端的高度
 	int nStretchMode; //显示模式
+private:
+	float uMax[MAX_CAMERAS];
+	float vMax[MAX_CAMERAS];
+	float MaxArrowLen[MAX_CAMERAS];
 public:
 	float* px[MAX_CAMERAS];
 	float* py[MAX_CAMERAS];

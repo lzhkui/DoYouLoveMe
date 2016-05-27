@@ -28,3 +28,11 @@ typedef struct StartPosition
 	int yStart;
 }st_StartPosition;
 
+//校正后，确定所选相机的宽高基准
+typedef struct BaseWidthANDHeight
+{
+	int baseWidth;
+	int baseHeight;
+	int diffWidth;
+	int diffHeight;
+}st_Base;

@@ -317,6 +317,19 @@ st_StartPosition AdjustImage::getStartPosition(CRect rect)
 	return this->m_stStartPosition;
 }
 
+st_StartPosition AdjustImage::getStartPosition(st_Base base)
+{
+	st_StartPosition start;
+	start.xStart = (int)((this->m_stRange.xMin - this->m_stClientRange.xMin) * 
+		base.baseWidth  / (this->m_stClientRange.xMax - this->m_stClientRange.xMin));
+
+	start.yStart = (int)((this->m_stClientRange.yMax - this->m_stRange.yMax) *
+		base.baseHeight / (this->m_stClientRange.yMax - this->m_stClientRange.yMin));
+
+	return start;
+
+}
+
 void AdjustImage::setSplitLine(float splitLine)
 {
 	this->splitLine = splitLine;

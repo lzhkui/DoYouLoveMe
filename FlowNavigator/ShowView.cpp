@@ -72,7 +72,8 @@ void CreateMatrixByRow(float* px, float* py, int xSmall, int xLarge, int ySmall,
 
 ShowView::ShowView(CWnd *pWnd)
 :Xstart(0),Ystart(0),Xreal(2560),Yreal(2048),
-showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE)
+showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE),
+base(BASE_ONWIDTH),I(1)
 {
 	bmpInfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpInfo,0,sizeof(BITMAPINFO)); 
@@ -108,6 +109,9 @@ showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE)
 		pu[i]  = NULL;
 		pv[i]  = NULL;
 		pc[i]  = NULL;
+		uMax[i] = 0;
+		vMax[i] = 0;
+		MaxArrowLen[i] = 0;
 	}
 
 	paras[0] = 32; paras[1] = 32; paras[2] = 1;paras[3] = 30;
@@ -119,6 +123,8 @@ showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE)
 
 	hinst = LoadLibraryEx(_T("hs_piv64.dll") , NULL, LOAD_WITH_ALTERED_SEARCH_PATH);//第一个参数后缀可以不加...
 	int result = GetLastError();
+
+	memset(&st_base, 0, sizeof(st_base));
 }
 
 ShowView::~ShowView(void)
@@ -179,7 +185,7 @@ void ShowView::setStartPosition(CheckToShow* checkShow, int sign)
 	this->height      = checkShow->getHeight(rect);             //单个相机在rect中的高度 单位:像素
 	this->DbClk       = checkShow->getDoubleClk();
 	this->startHeight = checkShow->getStartHeight(rect, !DbClk);//判断距顶部的像素距离
-	int weight  = checkShow->ReturnWeight(sign);
+	int weight        = checkShow->ReturnWeight(sign);
 
 	this->Xstart = weight * singleWidth;
 	this->Ystart = startHeight;
@@ -417,13 +423,13 @@ void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuff
 	HSPIV_Cross_Correlation_MP_Proc HSPIV_Cross_Correlation_MP  = (HSPIV_Cross_Correlation_MP_Proc)GetProcAddress(hinst, "HSPIV_Cross_Correlation_MP");
 	//HSPIV_MQD_Proc            HSPIV_MQD            = (HSPIV_MQD_Proc)GetProcAddress(hinst,"HSPIV_MQD");
 
-	yLarge   = nBuffRow;
-	ySmall   = 0;
-	xLarge   = nBuffCol;
-	xSmall   = 0;
+	this->yLarge   = nBuffRow;
+	this->ySmall   = 0;
+	this->xLarge   = nBuffCol;
+	this->xSmall   = 0;
 
-	int nRow = (yLarge - ySmall) / step + 1;
-	int nCol = (xLarge - xSmall) / step + 1;
+	int nRow = (this->yLarge - this->ySmall) / step + 1;
+	int nCol = (this->xLarge - this->xSmall) / step + 1;
 
 	this->mSizeX[sign] = nRow;
 	this->mSizeY[sign] = nCol;
@@ -445,6 +451,10 @@ void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuff
 	}
 	Unload_PIV_Images();
 	/*FreeLibrary(hinst);*/
+	FindMaxArrowLen(sign);
+#ifdef MYTEST
+	FindMaxUV(sign);
+#endif
 
 	free(copy_pBuffFirst);
 	copy_pBuffFirst = NULL;
@@ -503,8 +513,8 @@ void ShowView::DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v
 			startPoint.y = (int)yStart;
 			//startPoint = (xStart, yStart);
 
-			xEnd   = xStart + /*8 / showNum * */u[i*sizeY + j];
-			yEnd   = yStart + /*8 / showNum * */v[i*sizeY + j];
+			xEnd   = xStart + u[i*sizeY + j]  * ARROW_LEN / MaxArrowLen[sign];
+			yEnd   = yStart + v[i*sizeY + j]  * ARROW_LEN / MaxArrowLen[sign];
 			endPoint.x = (int)xEnd;
 			endPoint.y = (int)yEnd;
 			//endPoint = (xEnd, yEnd);
@@ -512,6 +522,66 @@ void ShowView::DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v
 		}
 	}
 }
+
+void ShowView::FindMaxUV(int sign)
+{
+	uMax[sign] = *(pu[sign]);
+	vMax[sign] = *(pv[sign]);
+	for(int i = 1; i < (mSizeY[sign]*mSizeX[sign]); i++)
+	{
+		if(uMax[sign] < *(pu[sign] + i))
+		{
+			uMax[sign] = *(pu[sign] + i);
+		}
+		if (vMax[sign] < *(pv[sign] + i))
+		{
+			vMax[sign] = *(pv[sign] + i);
+		}
+	}
+	TRACE(_T("uMax[%d] = %f, vMax[%d] = %f\n"), sign, uMax[sign],sign, vMax[sign]);
+}
+
+void ShowView::FindMaxArrowLen(int sign)
+{
+	float len = 0;
+	for (int i = 0; i < (mSizeX[sign] * mSizeY[sign]); i++)
+	{
+		len = sqrt((*(pu[sign] + i)) * (*(pu[sign] + i))+ (*(pv[sign] + i)) * (*(pv[sign] + i)));
+		if(MaxArrowLen[sign] < len)
+		{
+			MaxArrowLen[sign] = len;
+		}
+	}
+
+	TRACE(_T("MaxArrowLen[%d] = %f\n"),sign, MaxArrowLen[sign]);
+}
+
+void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign)
+{
+	int sizeX = this->mSizeX[sign];
+	int sizeY = this->mSizeY[sign];
+	CPoint startPoint;
+	CPoint endPoint;
+
+	CRect rect;
+	pWnd->GetClientRect(&rect);
+
+	getCurrentLen(rect);             
+	st_StartPosition start= adjustImage->getStartPosition(st_base);// 拼成同高度时，原始高度距离该高度以及该高度距离窗口
+	
+	for (int i = 0; i < sizeX; i++)
+	{
+		for(int j = 0; j < sizeY; j++)
+		{
+			startPoint.x = (*(px[sign]+i*sizeY + sizeX) * st_base.baseWidth  / adjustImage->getXClientRange() +
+				start.xStart + st_base.diffWidth);
+			startPoint.y = (*(py[sign]+i*sizeY + sizeX) * st_base.baseHeight / adjustImage->getYClientRange() + 
+				start.yStart + st_base.diffHeight); 
+			//endPoint.x   = startPoint.x + 
+		}
+	}
+}
+
 void ShowView::DrawVectorArrow(POINT startPoint, POINT endPoint, CWnd* pWnd)
 {
 	if(pWnd == NULL)
@@ -542,6 +612,54 @@ void ShowView::DrawVectorArrow(POINT startPoint, POINT endPoint, CWnd* pWnd)
 	dc.MoveTo(endPoint);
 	dc.LineTo(arrowPoint);
 
-	dc.SelectObject(&pOldPen);
+	dc.SelectObject(pOldPen);
 	::DeleteObject(pNewPen);
+}
+
+void ShowView::setCurrentBase(int base)
+{
+	this->base = base;
+}
+
+int ShowView::getCurrentBase()
+{
+	return this->base;
+}
+
+void ShowView::setSacle(float I)
+{
+	this->I = I;
+}
+st_Base ShowView::getCurrentLen(CRect rect)
+{
+	if (this->base == BASE_ONWIDTH)
+	{
+		st_base.baseWidth  = rect.Width();
+		st_base.baseHeight = st_base.baseWidth * I;
+
+		st_base.diffWidth  = 0;
+		st_base.diffHeight = (rect.Height() - st_base.baseHeight) / 2;  //代表将第一步同高度的图放窗口中间了
+	} 
+	else if(this->base == BASE_ONHEIGHT)
+	{
+		st_base.baseHeight = rect.Height();
+		st_base.baseWidth  = st_base.baseHeight / I;
+
+		st_base.diffHeight = 0;
+		st_base.diffWidth = (rect.Width() - st_base.baseWidth) / 2;
+	}
+	else if(this->base == BASE_SAME)
+	{
+		st_base.baseWidth  = rect.Width();
+		st_base.baseHeight = rect.Height();
+
+		st_base.diffWidth  = 0;
+		st_base.diffHeight = 0;
+	}
+	else
+	{
+		ASSERT(1);
+	}
+
+	return st_base;
 }
