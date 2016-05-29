@@ -39,6 +39,7 @@ void AdjustImage::initialAdjust()
 	}
 
 	splitLine = 0;
+	leftSplitLine = 0;
 }
 
 AdjustImage::~AdjustImage(void)
@@ -321,10 +322,10 @@ st_StartPosition AdjustImage::getStartPosition(st_Base base)
 {
 	st_StartPosition start;
 	start.xStart = (int)((this->m_stRange.xMin - this->m_stClientRange.xMin) * 
-		base.baseWidth  / (this->m_stClientRange.xMax - this->m_stClientRange.xMin));
+		base.baseWidth  / (this->m_stClientRange.xMax - this->m_stClientRange.xMin) + base.diffWidth);
 
 	start.yStart = (int)((this->m_stClientRange.yMax - this->m_stRange.yMax) *
-		base.baseHeight / (this->m_stClientRange.yMax - this->m_stClientRange.yMin));
+		base.baseHeight / (this->m_stClientRange.yMax - this->m_stClientRange.yMin) + base.diffHeight);
 
 	return start;
 
@@ -335,12 +336,28 @@ void AdjustImage::setSplitLine(float splitLine)
 	this->splitLine = splitLine;
 }
 
+void AdjustImage::setLeftSplitLine(float splitLine)
+{
+	this->leftSplitLine = splitLine;
+}
+
 float AdjustImage::getSplitLine()
 {
-	return (this->splitLine - this->m_stRange.xMin);
+	return this->splitLine;
+}
+
+float AdjustImage::getLeftSplitLine()
+{
+	return this->leftSplitLine;
 }
 
 int AdjustImage::getSplitLinePixel()
 {
-	return (int)(this->splitLine / this->L[0]);
+	return (int)((this->splitLine - this->m_stRange.xMin) / this->L[0]);
 }
+
+int AdjustImage::getLeftSplitLinePixel()
+{
+	return (int)((this->leftSplitLine - this->m_stRange.xMin) / this->L[0]);
+}
+

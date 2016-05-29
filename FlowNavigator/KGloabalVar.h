@@ -36,3 +36,11 @@ typedef struct BaseWidthANDHeight
 	int diffWidth;
 	int diffHeight;
 }st_Base;
+
+
+typedef struct FlowRate
+{
+	float u;
+	float v;
+	float uv;
+}st_FlowRate;

@@ -557,7 +557,7 @@ BOOL CFlowNavigatorDlg::OpenFactoryAndCamera()
 		TRACE("kui bpp : %d\n",bpp);
 
 		//设置初始帧率值，否则默认22帧，8台同时开，卡死
-	    J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[j],"AcquisitionFrameRate",&hNode);
+	    J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[j],(int8_t *)"AcquisitionFrameRate",&hNode);
 		J_Node_SetValueDouble(hNode,TRUE,3.0);
 		
         
@@ -2560,7 +2560,7 @@ void CFlowNavigatorDlg::OnSingleFrame()
 
 	NODE_HANDLE hNode;
 	double d_val;
-	if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[0],"AcquisitionFrameRate",&hNode))
+	if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[0],(int8_t *)"AcquisitionFrameRate",&hNode))
 	{
 		if(J_ST_SUCCESS != J_Node_GetValueDouble(hNode,TRUE,&d_val))	
 		{

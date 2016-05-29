@@ -105,11 +105,11 @@ void CSetValue::SetRangeMM(void)
 		{
 			AfxMessageBox(_T("未能正确获取相机增益参数!"),MB_ICONINFORMATION);
 		}
-// 		if(-1 == SetValueMM(m_hCam,"AcquisitionFrameRate",mFrameSliderCtrl,&m_MinFrame,&m_MaxFrame))
+// 		if(-1 == SetValueMM(m_hCam,(int8_t *)"AcquisitionFrameRate",mFrameSliderCtrl,&m_MinFrame,&m_MaxFrame))
 // 		{
 // 			AfxMessageBox(_T("未能正确获取相机帧率参数!"),MB_ICONINFORMATION);
 // 		}
-		if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[0],"AcquisitionFrameRate",&hNode))
+		if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[0],(int8_t *)"AcquisitionFrameRate",&hNode))
 		{
 			if(J_ST_SUCCESS != J_Node_GetValueDouble(hNode,TRUE,&d_val))	
 			{
@@ -326,7 +326,7 @@ void CSetValue::OnOK()
 		{
 			for (int i = 0; i < m_CameraCount; i++)
 			{
-				if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[i],"AcquisitionFrameRate",&hNode))
+				if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[i],(int8_t *)"AcquisitionFrameRate",&hNode))
 				{
 					J_Node_SetValueDouble(hNode,TRUE,m_CurFrame);
 				}
@@ -433,7 +433,7 @@ void CSetValue::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 		{
 			for (int i = 0; i < m_CameraCount; i++)
 			{
-				if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[i],"AcquisitionFrameRate",&hNode))
+				if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[i],(int8_t *)"AcquisitionFrameRate",&hNode))
 				{
 					J_Node_SetValueDouble(hNode,TRUE,m_CurFrame);
 				}
@@ -514,7 +514,7 @@ void CSetValue::OnBnClickedLoadlastsetup()
 	{
 		for (int i = 0; i < m_CameraCount; i++)
 		{
-			if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[i],"AcquisitionFrameRate",&hNode))
+			if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[i],(int8_t *)"AcquisitionFrameRate",&hNode))
 			{
 				J_Node_SetValueDouble(hNode,TRUE,m_CurFrame);
 			}

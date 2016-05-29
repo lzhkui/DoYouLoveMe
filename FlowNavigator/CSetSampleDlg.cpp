@@ -50,7 +50,7 @@ void CSetSampleDlg::OnBnClickedOk()
 	NODE_HANDLE hNode;
 	double d_val;
 
-	if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[0],"AcquisitionFrameRate",&hNode))
+	if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[0],(int8_t *)"AcquisitionFrameRate",&hNode))
 	{
 		if(J_ST_SUCCESS != J_Node_GetValueDouble(hNode,TRUE,&d_val))	
 		{

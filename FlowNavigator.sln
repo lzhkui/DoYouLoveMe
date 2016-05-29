@@ -1,7 +1,7 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FlowNavigator", "FlowNavigator\FlowNavigator.vcproj", "{8773B55C-52ED-4FEB-8B8C-6FE3D7BDF638}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FlowNavigator", "FlowNavigator\FlowNavigator.vcxproj", "{8773B55C-52ED-4FEB-8B8C-6FE3D7BDF638}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

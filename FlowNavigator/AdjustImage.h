@@ -31,6 +31,7 @@ private:
 	int mAdjustYRange;                     //拼接后Y方向的长度（单位：像素）
 
 	float splitLine;          //拼接分割线 
+	float leftSplitLine;
 
     st_ClientRange m_stClientRange;
 	st_StartPosition m_stStartPosition;
@@ -99,6 +100,12 @@ public:
 
 
 	void  setSplitLine(float splitLine);
+	void setLeftSplitLine(float splitLine);
+
 	float getSplitLine();
+	float getLeftSplitLine();
+
 	int   getSplitLinePixel();
+	int   getLeftSplitLinePixel();
+
 };

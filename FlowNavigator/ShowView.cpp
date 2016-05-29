@@ -75,6 +75,7 @@ ShowView::ShowView(CWnd *pWnd)
 showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE),
 base(BASE_ONWIDTH),I(1)
 {
+	initBmpInfo();
 	bmpInfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpInfo,0,sizeof(BITMAPINFO)); 
 	bmpInfo->bmiHeader.biPlanes = 1;    
@@ -130,7 +131,12 @@ base(BASE_ONWIDTH),I(1)
 ShowView::~ShowView(void)
 {
 	delete this->bmpInfo;
-	number--;
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		delete this->pBmpInfo[i];
+	}
+
+	number--; 
 	TRACE(_T("--ShowView has %d \n"), number);
 
 	for(int i = 0; i < MAX_CAMERAS; i++)
@@ -147,18 +153,62 @@ ShowView::~ShowView(void)
 	FreeLibrary(hinst);
 }
 
+void ShowView::initBmpInfo()
+{
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		pBmpInfo[i] = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
+		memset(pBmpInfo[i],0,sizeof(BITMAPINFO)); 
+		pBmpInfo[i]->bmiHeader.biPlanes = 1;    
+		pBmpInfo[i]->bmiHeader.biWidth=2560;
+		pBmpInfo[i]->bmiHeader.biHeight=2048;
+		pBmpInfo[i]->bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+
+
+		pBmpInfo[i]->bmiHeader.biCompression =BI_RGB;      
+		pBmpInfo[i]->bmiHeader.biBitCount=8;
+		pBmpInfo[i]->bmiHeader.biClrUsed=0;//为0就用2^biBitCount
+
+		for( int j = 0; j < 256; j++ )
+		{
+			pBmpInfo[i]->bmiColors[j].rgbBlue =  (BYTE) (0xff & j);
+			pBmpInfo[i]->bmiColors[j].rgbGreen = (BYTE)j;// bmpInfo->bmiColors[j].rgbBlue;
+			pBmpInfo[i]->bmiColors[j].rgbRed =(BYTE)j;// bmpInfo->bmiColors[j].rgbBlue;
+			pBmpInfo[i]->bmiColors[j].rgbReserved = 0;
+		}
+
+	}
+}
+
 BITMAPINFO* ShowView::getBmpInfo()
 {
 	return this->bmpInfo;
 }
+
+pBitmapInfo ShowView::getBmpInfo(int sign)
+{
+	ASSERT(sign < MAX_CAMERAS);
+	return this->pBmpInfo[sign];
+}
+
 void ShowView::setWidth(long width)
 {
 	bmpInfo->bmiHeader.biWidth = width;
 }
 
+void ShowView::setWidth(long width, int sign)
+{
+	this->pBmpInfo[sign]->bmiHeader.biWidth = width;
+}
+
 void ShowView::setHeight(long Height)
 {
 	bmpInfo->bmiHeader.biHeight = Height;
+}
+
+void ShowView::setHeight(long Height, int sign)
+{
+	this->pBmpInfo[sign]->bmiHeader.biHeight = Height;
 }
 
 void ShowView::setStartPosition(int Xstart, int Ystart)
@@ -171,7 +221,7 @@ void ShowView::setStartPosition(AdjustImage* adjustImage)
 {
 	CRect rect;
 	pWnd->GetClientRect(&rect);
-	st_StartPosition startPosition = adjustImage->getStartPosition(rect);
+	st_StartPosition startPosition = adjustImage->getStartPosition(st_base);
 	this->Xstart = startPosition.xStart;
 	this->Ystart = startPosition.yStart;
 }
@@ -211,7 +261,7 @@ int ShowView::getStretchMode()
 	return this->nStretchMode;
 }
 
-void ShowView::LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustImage* adjustImage)
+void ShowView::LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustImage* adjustImage, int originSign)
 {
 	setStartPosition(adjustImage);
 
@@ -222,8 +272,27 @@ void ShowView::LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustIm
 	setWidth(xRange);
 	setHeight(yRange);
 
-	LiveView_CWJ(targetImage, bmpInfo, this->Xstart, this->Ystart, 
-		xRange, yRange, getStretchMode());
+	int nWidth  = adjustImage->getSplitLinePixel() * st_base.baseWidth / adjustImage->getXClientRange();
+	int nHeight = st_base.baseHeight;
+
+	int xSrc    = adjustImage->getLeftSplitLinePixel();
+	int ySrc    = pBmpInfo[sign]->bmiHeader.biHeight;
+	int nSrcWidth  = adjustImage->getSplitLinePixel() - adjustImage->getLeftSplitLinePixel();
+	int nSrcHeight = pBmpInfo[sign]->bmiHeader.biHeight;
+
+	//如果选中的只有一台相机，下面的判断 还得增加对FIRSTCHECK时nSrcWidth的情况 最好是把adjustImage->getSplitLinePixel() 抽象到AdjustImage里面用函数判断
+	if(originSign == FIRSTCHECK)
+	{
+		xSrc = 0;
+		nSrcWidth  = adjustImage->getSplitLinePixel();
+	}
+	else if(originSign == LASTCHECK)
+	{
+		nSrcWidth = adjustImage->getXRange() - adjustImage->getLeftSplitLinePixel();
+	}
+
+	LiveView_CWJ(targetImage, pBmpInfo[sign], this->Xstart, this->Ystart, 
+		nWidth, nHeight, xSrc, ySrc, nSrcWidth, nSrcHeight,getStretchMode());
 }
 
 void ShowView::LiveViewBySign(unsigned char* targetImage, int sign, CheckToShow* checkShow)
@@ -320,6 +389,38 @@ void ShowView::LiveView_CWJ(unsigned char * pImageBuffer, BITMAPINFO* bmpInfo, i
 	pWnd->ReleaseDC(pDC);
 }
 
+void ShowView::LiveView_CWJ(unsigned char * pImageBuffer, BITMAPINFO* bmpInfo, int x, int y, 
+	int scaleX, int scaleY, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, int nStretchMode)
+{
+	CDC * pDC = pWnd->GetDC();
+	CDC MemDC;
+
+	if(!MemDC.CreateCompatibleDC(pDC))
+	{
+		pWnd->ReleaseDC(pDC);
+		return;
+	}
+
+	CBitmap bmp;
+	bmp.CreateCompatibleBitmap(pDC,bmpInfo->bmiHeader.biWidth,bmpInfo->bmiHeader.biHeight);
+	CBitmap* pOldBmp = MemDC.SelectObject(&bmp);
+	::SetDIBitsToDevice(MemDC.GetSafeHdc(),
+		0,0,bmpInfo->bmiHeader.biWidth,bmpInfo->bmiHeader.biHeight,
+		0,0,
+		0,(bmpInfo->bmiHeader.biHeight),
+		pImageBuffer,
+		bmpInfo,
+		DIB_RGB_COLORS);
+
+	pDC->SetStretchBltMode(COLORONCOLOR);//COLORONCOLOR   HALFTONE
+	pDC->StretchBlt(x,y,scaleX,scaleY,&MemDC,xSrc,ySrc,/*first*/
+		nSrcWidth,-nSrcHeight,/*second */ //两者都为0时和此时对比，图像上下翻转
+		SRCCOPY);
+	MemDC.SelectObject(pOldBmp);
+	MemDC.DeleteDC();
+	bmp.DeleteObject();
+	pWnd->ReleaseDC(pDC);
+}
 
 void ShowView::DrawText_k(st_DrawText *pDrawText)
 {
@@ -556,28 +657,53 @@ void ShowView::FindMaxArrowLen(int sign)
 	TRACE(_T("MaxArrowLen[%d] = %f\n"),sign, MaxArrowLen[sign]);
 }
 
-void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign)
+void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign, int originSign)
 {
 	int sizeX = this->mSizeX[sign];
 	int sizeY = this->mSizeY[sign];
+
+	int startX = 0;
+	while(startX * step < adjustImage->getLeftSplitLinePixel())
+	{
+		startX++;
+	}
+	startX--;
+
+	int endX = 0;
+	while(endX * step < adjustImage->getSplitLinePixel())
+	{
+		endX++;
+	}
+	endX--;
+
+	if(originSign == FIRSTCHECK)
+	{
+		startX = 0;
+	}
+	else if(originSign == LASTCHECK)
+	{
+		endX = sizeX;
+	}
 	CPoint startPoint;
 	CPoint endPoint;
 
 	CRect rect;
 	pWnd->GetClientRect(&rect);
 
-	getCurrentLen(rect);             
-	st_StartPosition start= adjustImage->getStartPosition(st_base);// 拼成同高度时，原始高度距离该高度以及该高度距离窗口
+	//getCurrentLen(rect);             
+	st_StartPosition start= adjustImage->getStartPosition(st_base);// 拼成同高度时，原始图像在实际窗口中的起始位置
 	
 	for (int i = 0; i < sizeX; i++)
 	{
-		for(int j = 0; j < sizeY; j++)
+		for(int j = startX; j < endX; j++)
 		{
 			startPoint.x = (*(px[sign]+i*sizeY + sizeX) * st_base.baseWidth  / adjustImage->getXClientRange() +
-				start.xStart + st_base.diffWidth);
+				start.xStart);
 			startPoint.y = (*(py[sign]+i*sizeY + sizeX) * st_base.baseHeight / adjustImage->getYClientRange() + 
-				start.yStart + st_base.diffHeight); 
-			//endPoint.x   = startPoint.x + 
+				start.yStart); 
+			endPoint.x   = (startPoint.x + *(pu[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign]);
+			endPoint.y   = (startPoint.y + *(pv[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign]);
+			DrawVectorArrow(startPoint, endPoint, this->pWnd);
 		}
 	}
 }
@@ -635,7 +761,7 @@ st_Base ShowView::getCurrentLen(CRect rect)
 	if (this->base == BASE_ONWIDTH)
 	{
 		st_base.baseWidth  = rect.Width();
-		st_base.baseHeight = st_base.baseWidth * I;
+		st_base.baseHeight = (int)(st_base.baseWidth * I);
 
 		st_base.diffWidth  = 0;
 		st_base.diffHeight = (rect.Height() - st_base.baseHeight) / 2;  //代表将第一步同高度的图放窗口中间了
@@ -643,7 +769,7 @@ st_Base ShowView::getCurrentLen(CRect rect)
 	else if(this->base == BASE_ONHEIGHT)
 	{
 		st_base.baseHeight = rect.Height();
-		st_base.baseWidth  = st_base.baseHeight / I;
+		st_base.baseWidth  = (int)(st_base.baseHeight / I);
 
 		st_base.diffHeight = 0;
 		st_base.diffWidth = (rect.Width() - st_base.baseWidth) / 2;
@@ -662,4 +788,64 @@ st_Base ShowView::getCurrentLen(CRect rect)
 	}
 
 	return st_base;
+}
+
+st_FlowRate ShowView::getFlowRate(CPoint point, int* CheckCamSign, int Num, AdjustImage* adjustImage[])
+{
+	st_FlowRate flowRate = {0};
+	int sign = 0;  //所选中的编号
+	st_Range range = adjustImage[CheckCamSign[sign]]->getSingleRange();
+	st_ClientRange clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                      //(1)
+	float splitLine = (adjustImage[CheckCamSign[sign]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);  //(1)
+	while((point.x - st_base.diffWidth) <= splitLine )
+	{
+		sign++;
+		if (sign == Num)
+		{
+			break;
+		}
+		clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                                 //(2)
+		splitLine = (adjustImage[CheckCamSign[sign]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);    //(2)
+	}
+	if (sign != Num)
+	{
+		sign--;
+	}
+
+	clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                                     //(3)
+	splitLine = (adjustImage[CheckCamSign[sign]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);        //(3)
+
+	float pointX = point.x - st_base.diffWidth - (range.xMin - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);
+	int pointXByAdjust = (int)(pointX * adjustImage[sign]->getXRange() / splitLine);
+	int pointYByAdjust = point.y - st_base.diffHeight;
+
+	int startX = 0;
+	while(startX * step <= pointXByAdjust)
+	{
+		startX++;
+	}
+	startX--;
+
+	//不在有效区域内
+	st_StartPosition startPosition = adjustImage[CheckCamSign[sign]]->getStartPosition(st_base);
+	int nHeight = (range.yMax - range.yMin) * st_base.baseHeight / (clientRange.yMax - clientRange.yMin);
+	if (pointYByAdjust < startPosition.yStart || pointYByAdjust > startPosition.yStart + nHeight)
+	{
+		flowRate.u = 0;
+		flowRate.v = 0;
+		flowRate.uv = 0;
+
+		return flowRate;
+	}
+
+	int startY = 0;
+	while(startY * step <= pointYByAdjust)
+	{
+		startY++;
+	}
+	startY--;
+
+	flowRate.u  = *(pu[sign] + startY * mSizeY[sign] + startX);
+	flowRate.v  = *(pv[sign] + startY * mSizeX[sign] + startY);
+	flowRate.uv = sqrt(flowRate.u*flowRate.u + flowRate.v*flowRate.v);
 }
