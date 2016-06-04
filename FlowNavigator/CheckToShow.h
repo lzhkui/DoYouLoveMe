@@ -48,6 +48,8 @@ public:
 	int  getNum();
 	void setStart(int start);
 	void setRect(CRect& rect);
+
+	int getWidth();
 	int  getWidth(CRect& rect);
 	int  getHeight(float Xreal = 2048, float Yreal = 2560);
 	int  getHeight(CRect& rect, float Xreal = 2048, float Yreal = 2560);

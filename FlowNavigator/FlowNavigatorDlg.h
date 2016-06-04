@@ -23,6 +23,9 @@
 #include <afxext.h>
 #include "ZoomImage.h"
 #include "SetPivArg.h"
+#include "ImageCalibrationDlg.h"
+#include "ImageCalibrationDlg2.h"
+#include "ImageCalibration.h"
 
 #define  MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
@@ -38,7 +41,6 @@
 #define K_INIT_HEIGH 2048
 
 #define MAX_IMG_COUNT 100
-
 
 extern int Count_Single[MAX_CAMERAS];//流场个数
 extern int Count_Once[MAX_CAMERAS];  //单次采集张数
@@ -67,12 +69,17 @@ public:
 
 	CheckToShow* checkShow; //双击后的显示问题
 	ZoomImage* zoomImage;   //缩放
-
+	ImageCalibrationDlg*  CLBdlg;
+	ImageCalibrationDlg2* CLBdlg2;
+	ImageCalibration* imgClb;
 
 	//用于GDI+初始化函数
 private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
+
+	HWND g_hwndTrackingTT;
+
 	CPoint PointStart;
 	CPoint PointEnd;
 	//CRectTracker m_RectTracker;  //橡皮圈
@@ -89,8 +96,8 @@ public:
 	int8_t          m_sCameraId[MAX_CAMERAS][J_CAMERA_ID_SIZE];      // Camera ID
 	NODE_HANDLE     m_hGainNode;                                     // Handle to "GainRaw" node
 	NODE_HANDLE     m_hExposureNode;                                 // Handle to "ExposureTimeRaw" node
-	PIXELVALUE			m_PixelValue;
-	uint64_t			m_PixelType;
+	PIXELVALUE		m_PixelValue;
+	uint64_t		m_PixelType;
 	//CRITICAL_SECTION    m_CriticalSection;
 	//J_tIMAGE_INFO		m_CnvImageInfo;                               // Image info structure
 	
@@ -217,4 +224,7 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnOpenproj();
+	afx_msg void OnMouseLeave();
+	afx_msg void OnImageCalibrate();
+	afx_msg void OnImageCalibrate2();
 };

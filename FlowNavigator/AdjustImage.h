@@ -7,7 +7,7 @@
 class AdjustImage
 {
 public:
-	AdjustImage(unsigned int imageSize, unsigned char* relatedArray);
+	AdjustImage(unsigned int imageSize, unsigned char* relatedArray = NULL);
 	AdjustImage::AdjustImage(J_tIMAGE_INFO* pAqImageInfo, unsigned char* relatedArray);
 
 	~AdjustImage(void);	
@@ -30,7 +30,7 @@ private:
 	int mAdjustXRange;                     //拼接后X方向的长度（单位：像素）
 	int mAdjustYRange;                     //拼接后Y方向的长度（单位：像素）
 
-	float splitLine;          //拼接分割线 
+	float splitLine;                       //拼接分割线 
 	float leftSplitLine;
 
     st_ClientRange m_stClientRange;
@@ -107,5 +107,4 @@ public:
 
 	int   getSplitLinePixel();
 	int   getLeftSplitLinePixel();
-
 };

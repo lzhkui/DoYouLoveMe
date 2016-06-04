@@ -222,7 +222,8 @@ void ShowView::setStartPosition(AdjustImage* adjustImage)
 	CRect rect;
 	pWnd->GetClientRect(&rect);
 	st_StartPosition startPosition = adjustImage->getStartPosition(st_base);
-	this->Xstart = startPosition.xStart;
+	int diff = adjustImage->getLeftSplitLinePixel() * st_base.baseWidth / adjustImage->getXClientRange();
+	this->Xstart = startPosition.xStart + diff;
 	this->Ystart = startPosition.yStart;
 }
 void ShowView::setStartPosition(CheckToShow* checkShow, int sign)
@@ -272,7 +273,7 @@ void ShowView::LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustIm
 	setWidth(xRange);
 	setHeight(yRange);
 
-	int nWidth  = adjustImage->getSplitLinePixel() * st_base.baseWidth / adjustImage->getXClientRange();
+	int nWidth  = (adjustImage->getSplitLinePixel() - adjustImage->getLeftSplitLinePixel()) * st_base.baseWidth / adjustImage->getXClientRange();
 	int nHeight = st_base.baseHeight;
 
 	int xSrc    = adjustImage->getLeftSplitLinePixel();
@@ -615,7 +616,7 @@ void ShowView::DrawArrowPoisitionBySign(float* px, float* py, float* u, float* v
 			//startPoint = (xStart, yStart);
 
 			xEnd   = xStart + u[i*sizeY + j]  * ARROW_LEN / MaxArrowLen[sign];
-			yEnd   = yStart + v[i*sizeY + j]  * ARROW_LEN / MaxArrowLen[sign];
+			yEnd   = yStart - v[i*sizeY + j]  * ARROW_LEN / MaxArrowLen[sign];
 			endPoint.x = (int)xEnd;
 			endPoint.y = (int)yEnd;
 			//endPoint = (xEnd, yEnd);
@@ -676,13 +677,15 @@ void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign, int 
 	}
 	endX--;
 
+	TRACE(_T("DrawArrowPoisitionBySign: startX = %d, endX = %d\n"), startX, endX);
+
 	if(originSign == FIRSTCHECK)
 	{
 		startX = 0;
 	}
 	else if(originSign == LASTCHECK)
 	{
-		endX = sizeX;
+		endX = sizeY;
 	}
 	CPoint startPoint;
 	CPoint endPoint;
@@ -697,12 +700,12 @@ void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign, int 
 	{
 		for(int j = startX; j < endX; j++)
 		{
-			startPoint.x = (*(px[sign]+i*sizeY + sizeX) * st_base.baseWidth  / adjustImage->getXClientRange() +
+			startPoint.x = (*(px[sign]+i*sizeY + j) * st_base.baseWidth  / adjustImage->getXClientRange() +
 				start.xStart);
-			startPoint.y = (*(py[sign]+i*sizeY + sizeX) * st_base.baseHeight / adjustImage->getYClientRange() + 
+			startPoint.y = (*(py[sign]+i*sizeY + j) * st_base.baseHeight / adjustImage->getYClientRange() + 
 				start.yStart); 
 			endPoint.x   = (startPoint.x + *(pu[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign]);
-			endPoint.y   = (startPoint.y + *(pv[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign]);
+			endPoint.y   = (startPoint.y - *(pv[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign]);
 			DrawVectorArrow(startPoint, endPoint, this->pWnd);
 		}
 	}
@@ -797,19 +800,20 @@ st_FlowRate ShowView::getFlowRate(CPoint point, int* CheckCamSign, int Num, Adju
 	st_Range range = adjustImage[CheckCamSign[sign]]->getSingleRange();
 	st_ClientRange clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                      //(1)
 	float splitLine = (adjustImage[CheckCamSign[sign]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);  //(1)
-	while((point.x - st_base.diffWidth) <= splitLine )
+
+	for(int i = 0; i < Num; i++)
 	{
-		sign++;
-		if (sign == Num)
+		if((point.x - st_base.diffWidth) <= splitLine)
 		{
+			sign = i;
 			break;
 		}
-		clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                                 //(2)
-		splitLine = (adjustImage[CheckCamSign[sign]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);    //(2)
-	}
-	if (sign != Num)
-	{
-		sign--;
+		else
+		{
+			//clientRange其实都一样
+			clientRange = adjustImage[CheckCamSign[i]]->getClientRange();                                                                                 //(2)
+			splitLine = (adjustImage[CheckCamSign[i]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);    //(2)
+		}
 	}
 
 	clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                                     //(3)
@@ -829,7 +833,7 @@ st_FlowRate ShowView::getFlowRate(CPoint point, int* CheckCamSign, int Num, Adju
 	//不在有效区域内
 	st_StartPosition startPosition = adjustImage[CheckCamSign[sign]]->getStartPosition(st_base);
 	int nHeight = (range.yMax - range.yMin) * st_base.baseHeight / (clientRange.yMax - clientRange.yMin);
-	if (pointYByAdjust < startPosition.yStart || pointYByAdjust > startPosition.yStart + nHeight)
+	if (pointYByAdjust < (startPosition.yStart - st_base.diffHeight) || pointYByAdjust > (startPosition.yStart + nHeight - st_base.diffHeight))
 	{
 		flowRate.u = 0;
 		flowRate.v = 0;
@@ -839,13 +843,18 @@ st_FlowRate ShowView::getFlowRate(CPoint point, int* CheckCamSign, int Num, Adju
 	}
 
 	int startY = 0;
-	while(startY * step <= pointYByAdjust)
+	while(startY * step <= (point.y - startPosition.yStart))
 	{
 		startY++;
 	}
 	startY--;
 
 	flowRate.u  = *(pu[sign] + startY * mSizeY[sign] + startX);
-	flowRate.v  = *(pv[sign] + startY * mSizeX[sign] + startY);
+	flowRate.v  = *(pv[sign] + startY * mSizeY[sign] + startX);
 	flowRate.uv = sqrt(flowRate.u*flowRate.u + flowRate.v*flowRate.v);
+
+	TRACE(_T("u=%f, v=%f, uv=%f, maxUVLen=%f, firstU=%f, firstV=%f, startX=%d, startY=%d\n"), flowRate.u, flowRate.v, flowRate.uv,MaxArrowLen[CheckCamSign[sign]], 
+		*(pu[sign] + 1), *(pv[sign] + 1), startX, startY);
+
+	return flowRate;
 }

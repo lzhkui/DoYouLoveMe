@@ -58,42 +58,43 @@ int DoubleClk = DOUBLECLK_IN;
 
 #define  KDebug 0
 
-#if KDebug
-long bmpWidth;
-long bmpHeight;
-WORD kbiBitCount;
-RGBQUAD *pColorTable=NULL;
-unsigned char *pBmpBuf = NULL;
-bool readBmp(char *bmpName)
-{
-	FILE *fp = fopen(bmpName,"rb");
-	if (fp == NULL)
-	{
-		return FALSE;
-	}
-	fseek(fp,sizeof(BITMAPFILEHEADER),0);
-	BITMAPINFOHEADER infoHead;
-	
-	fread(&infoHead,sizeof(BITMAPINFOHEADER),1,fp);
-	bmpWidth = infoHead.biWidth;
-	bmpHeight = infoHead.biHeight;
-	kbiBitCount = infoHead.biBitCount;
 
-	int lineByte = (bmpWidth*kbiBitCount/8 + 3)/4*4;
-	if(kbiBitCount == 8)
-	{
-		pColorTable = new RGBQUAD[256];
-		fread(pColorTable,sizeof(RGBQUAD),256,fp);
-	}
+TOOLINFO g_toolItem;
+BOOL g_TrackingMouse = FALSE;
 
-	pBmpBuf = new unsigned char[lineByte*bmpHeight];
-	fread(pBmpBuf,1,lineByte*bmpHeight,fp);
-	fclose(fp);
+HWND CreateTrackingToolTip(int toolID, HWND hDlg, WCHAR *pText) 
+{ 
+	HWND hwndTT = CreateWindowEx(WS_EX_TOPMOST, 
+		TOOLTIPS_CLASS, 
+		NULL, 
+		WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP, 
+		CW_USEDEFAULT, 
+		CW_USEDEFAULT, 
+		CW_USEDEFAULT, 
+		CW_USEDEFAULT, 
+		hDlg, 
+		NULL, 
+		AfxGetInstanceHandle(), 
+		NULL); 
 
-	return true;
-}
+	if (!hwndTT) 
+	{ 
+		return NULL; 
+	} 
 
-#endif
+	g_toolItem.cbSize = sizeof(TOOLINFO); 
+	g_toolItem.uFlags = TTF_IDISHWND | TTF_TRACK | TTF_ABSOLUTE | TTF_SUBCLASS; 
+	g_toolItem.hwnd = hDlg; 
+	g_toolItem.hinst = AfxGetInstanceHandle(); 
+	g_toolItem.lpszText = pText; 
+	g_toolItem.uId = (UINT_PTR)hDlg; 
+
+	GetClientRect(hDlg, &g_toolItem.rect); 
+
+	SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM)(LPTOOLINFO)&g_toolItem); 
+
+	return hwndTT; 
+} 
 
 void CreateCheckCamBt(CButton* bt[], CRect rect, CWnd *pWnd, UINT ID[])
 {
@@ -197,6 +198,8 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	
 	checkShow        = new CheckToShow;
 	SV_AdjustArg     = NULL;
+	CLBdlg           = NULL;
+	CLBdlg2          = NULL;
 
 	// Initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
@@ -214,6 +217,9 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 		(m_CnvImageInfo[i]).pImageBuffer = NULL;// 必须置空，否则后面不分配空间
 
 		checkBt[i]   = new CButton;
+
+		adjustImage_C[i] = new AdjustImage(CAMERA_PIXEL_ROW*CAMERA_PIXEL_COL);
+		imgClb = new ImageCalibration(adjustImage_C, MAX_CAMERAS);
 	}
 	bmpinfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpinfo,0,sizeof(BITMAPINFO)); 
@@ -251,7 +257,6 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 // 	m_hPalete.CreatePalette(pLogPal);
 	// We use a critical section to protect the update of the pixel value display
 	//InitializeCriticalSection(&m_CriticalSection);
-
 }
 
 CFlowNavigatorDlg::~CFlowNavigatorDlg()
@@ -314,6 +319,9 @@ BEGIN_MESSAGE_MAP(CFlowNavigatorDlg, CDialog)
 	ON_WM_MOUSEMOVE()
 	ON_WM_RBUTTONDBLCLK()
 	ON_COMMAND(ID_OpenProj, &CFlowNavigatorDlg::OnOpenproj)
+	ON_WM_MOUSELEAVE()
+	ON_COMMAND(ID_ImageCalibrate, &CFlowNavigatorDlg::OnImageCalibrate)
+	ON_COMMAND(ID_ImageCalibrate2, &CFlowNavigatorDlg::OnImageCalibrate2)
 END_MESSAGE_MAP()
 
 
@@ -356,6 +364,8 @@ BOOL CFlowNavigatorDlg::OnInitDialog()
 
 	zoomImage        = new ZoomImage(this);
 	showView         = new ShowView(this); 
+
+	g_hwndTrackingTT = CreateTrackingToolTip(IDOK, m_hWnd, _T("ToolTip")); 
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -1166,7 +1176,7 @@ void CFlowNavigatorDlg::StreamCBFunc(J_tIMAGE_INFO *pAqImageInfo)
 	// 	ReleaseDC(pDc);
 End:
 	float end = clock();
-	TRACE("LiveView coast time = %f\n",end - begin);
+	//TRACE("LiveView coast time = %f\n",end - begin);
 }
 
 void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
@@ -2652,13 +2662,20 @@ void CFlowNavigatorDlg::OnAdjust()
 	//这里以后加个if(图片数据类.图片数据==NULL) return；
 	for (int i = 0; i < MAX_CAMERAS; i++)
 	{
-		relateArr[i] = (unsigned char *)malloc(adjImgSize*sizeof(char));
+		relateArr[i] = (unsigned char *)malloc(adjImgSize*sizeof(unsigned char));
 
 		adjustImage_C[i] = new AdjustImage(2560*2048,relateArr[i]);
 		adjustImage_C[i]->setAdjustImageSize(adjImgSize);
 		adjustImage_C[i]->setSingleRange(xMin, xMax, yMin, yMax);
 		adjustImage_C[i]->setL(L);
 	}
+	adjustImage_C[0]->setSingleRange(0, 2560, 1000, 3048);
+	adjustImage_C[1]->setSingleRange(2060, 4620, 0, 2048);
+	adjustImage_C[0]->setLeftSplitLine(0);
+	adjustImage_C[0]->setSplitLine(2260);
+	adjustImage_C[1]->setLeftSplitLine(2260);
+	adjustImage_C[1]->setSplitLine(4620);
+
 	mAdjust = true;
 	
 	for (int j = 0; j < MAX_CAMERAS; j++)
@@ -2824,6 +2841,10 @@ void CFlowNavigatorDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 		return;
 	}
+	if(solveFlow != -1)
+	{
+	}
+
 	getLBDownState(point);
 
 	b_LBUp   = FALSE;
@@ -2875,6 +2896,48 @@ void CFlowNavigatorDlg::OnLButtonUp(UINT nFlags, CPoint point)
 void CFlowNavigatorDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if(solveFlow != -1 && mAdjust==TRUE)
+	{
+		st_FlowRate flowRate = {0};
+		flowRate = SV_AdjustArg->getFlowRate(point, checkShow->getCheckCamSign(), checkShow->getNum(), adjustImage_C);
+
+		static int oldX, oldY; 
+		int newX, newY; 
+
+		if (!g_TrackingMouse) 
+		{ 
+			TRACKMOUSEEVENT tme = {sizeof(TRACKMOUSEEVENT)}; 
+			tme.hwndTrack = m_hWnd; 
+			tme.dwFlags = TME_LEAVE; 
+
+			TrackMouseEvent(&tme); 
+
+			::SendMessage(g_hwndTrackingTT, TTM_TRACKACTIVATE, (WPARAM)TRUE, (LPARAM)&g_toolItem); 
+
+			g_TrackingMouse = TRUE; 
+		} 
+
+		newX = point.x; 
+		newY = point.y; 
+
+		if ((newX != oldX) || (newY != oldY)) 
+		{ 
+			oldX = newX; 
+			oldY = newY; 
+
+			WCHAR coords[100]; 
+			swprintf_s(coords, ARRAYSIZE(coords), _T("u=%f, v=%f, uv=%f"), flowRate.u, flowRate.v, flowRate.uv); 
+
+			g_toolItem.lpszText = coords; 
+			::SendMessage(g_hwndTrackingTT, TTM_SETTOOLINFO, 0, (LPARAM)&g_toolItem); 
+
+			POINT pt = {newX, newY}; 
+			::ClientToScreen(m_hWnd, &pt); 
+			::SendMessage(g_hwndTrackingTT, TTM_TRACKPOSITION, 0, (LPARAM)MAKELONG(pt.x + 10, pt.y - 20)); 
+		} 
+
+	}
+
 	if(!b_LBDown || !getLBDownState(point))
 	{
 		return;
@@ -2961,3 +3024,38 @@ void CFlowNavigatorDlg::OnReboot()
 	OnCloseCamera();
 }
 
+
+void CFlowNavigatorDlg::OnMouseLeave()
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	::SendMessage(g_hwndTrackingTT, TTM_TRACKACTIVATE, (WPARAM)FALSE, (LPARAM)&g_toolItem); 
+	g_TrackingMouse = FALSE; 
+	CDialog::OnMouseLeave();
+}
+
+
+void CFlowNavigatorDlg::OnImageCalibrate()
+{
+	// TODO: 在此添加命令处理程序代码
+	CLBdlg2 = new ImageCalibrationDlg2;
+
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		CLBdlg2->adjustImage[i] = adjustImage_C[i];
+	}
+	CLBdlg2->imgClb = imgClb;
+	CLBdlg2->Create(IDD_CLB_CHILD8, this);
+	CLBdlg2->ShowWindow(SW_SHOW);
+	CLBdlg2->UpdateWindow();
+}
+
+
+void CFlowNavigatorDlg::OnImageCalibrate2()
+{
+	// TODO: 在此添加命令处理程序代码
+	CLBdlg = new ImageCalibrationDlg;
+
+	CLBdlg->Create(IDD_CLB_PARENT, this);
+	CLBdlg->ShowWindow(SW_SHOW);
+	CLBdlg->UpdateWindow();
+}

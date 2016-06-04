@@ -22,6 +22,17 @@
 #define IDD_DIALOG_SINGLEFRAME          134
 #define IDB_BITMAP1                     136
 #define IDD_DIALOG_PIVSET               137
+#define IDD_DIALOG_CALIBRATION          138
+#define IDD_CLB_PARENT                  141
+#define IDD_CLB_CHILD0                  143
+#define IDD_CLB_CHILD1                  144
+#define IDD_CLB_CHILD2                  145
+#define IDD_CLB_CHILD3                  146
+#define IDD_CLB_CHILD4                  147
+#define IDD_CLB_CHILD5                  148
+#define IDD_CLB_CHILD6                  149
+#define IDD_CLB_CHILD7                  150
+#define IDD_CLB_CHILD8                  151
 #define IDC_SLIDER1                     1000
 #define IDC_CurExposure                 1001
 #define IDC_MinExposure                 1002
@@ -44,16 +55,40 @@
 #define IDC_EDIT3                       1022
 #define IDC_ySmall                      1023
 #define IDC_ROW                         1024
+#define IDC_EDIT4                       1024
 #define IDC_STEP                        1025
+#define IDC_EDIT5                       1025
 #define IDC_DEFAULTARG_PIV              1026
+#define IDC_EDIT6                       1026
 #define IDC_USECURRENT                  1027
+#define IDC_EDIT7                       1027
 #define IDC_STARTCALC                   1028
+#define IDC_EDIT8                       1028
 #define IDC_STOPCALC                    1029
+#define IDC_EDIT9                       1029
 #define IDC_xSmall                      1030
+#define IDC_EDIT10                      1030
 #define IDC_xLarge                      1031
 #define IDC_yLarge                      1032
 #define IDC_RADIO1                      1033
 #define IDC_RADIO2                      1034
+#define IDC_EDIT11                      1035
+#define IDC_EDIT12                      1036
+#define IDC_EDIT13                      1037
+#define IDC_EDIT14                      1038
+#define IDC_EDIT15                      1039
+#define IDC_EDIT16                      1040
+#define IDC_EDIT17                      1041
+#define IDC_TAB1                        1042
+#define IDC_EDIT18                      1042
+#define IDC_EDIT19                      1043
+#define IDC_EDIT20                      1044
+#define IDC_EDIT21                      1045
+#define IDC_EDIT22                      1046
+#define IDC_BT_BEGING                   1047
+#define IDC_EDIT23                      1048
+#define IDC_BUTTON1                     1049
+#define IDC_EDIT24                      1050
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -103,14 +138,19 @@
 #define ID_LinkFlow                     32817
 #define ID_32818                        32818
 #define ID_OpenProj                     32819
+#define ID_32820                        32820
+#define ID_Menu32821                    32821
+#define ID_ImageCalibrate               32822
+#define ID_32823                        32823
+#define ID_ImageCalibrate2              32824
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        138
-#define _APS_NEXT_COMMAND_VALUE         32820
-#define _APS_NEXT_CONTROL_VALUE         1035
+#define _APS_NEXT_RESOURCE_VALUE        143
+#define _APS_NEXT_COMMAND_VALUE         32825
+#define _APS_NEXT_CONTROL_VALUE         1051
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

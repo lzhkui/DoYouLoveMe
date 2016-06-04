@@ -97,6 +97,11 @@ void CheckToShow::setRect(CRect& rect)
 	this->mRect = rect;
 }
 
+int CheckToShow::getWidth()
+{
+	return getWidth(this->mRect);
+}
+
 int CheckToShow::getWidth(CRect& rect)
 {
 	if(this->mNum == 0)
@@ -109,7 +114,6 @@ int CheckToShow::getWidth(CRect& rect)
 	}
 	
 	return rect.Width() / MAX_CAMERAS;
-	
 }
 
 int CheckToShow::getHeight(float Xreal, float Yreal)

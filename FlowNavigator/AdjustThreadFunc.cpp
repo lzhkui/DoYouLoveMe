@@ -87,7 +87,7 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 		tempXmin  = (tempXmin > m_stRange.xMin) ? m_stRange.xMin : tempXmin;
 	}
 	float I   = (tempYmax - tempYmin) / (tempXmax - tempXmin);
-	float I_0 = rect.Height() / rect.Width();
+	float I_0 = (float)(rect.Height()) / (float)(rect.Width());
 
 	m_pAdjustCls->showView->setSacle(I);
 	if(I < I_0)
@@ -112,7 +112,7 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 
 	while(mAdjust)
 	{
-		TRACE("begin adjust!\n");
+		//TRACE("begin adjust!\n");
 // 		CRect rect;
 // 		m_pAdjustCls->pWnd->GetClientRect(&rect);
 
@@ -124,7 +124,7 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 				int imageSize = (m_pAdjustCls->adjustImage_C[CheckCamSign[i]])->getImageSize();
 				if (Pair[CheckCamSign[i]] == 0)
 				{
-#if KDEBUG_ADJUST
+#if 1
 					for (int n = 0; n < imageSize; n++)
 					{
 						*(pair_targetArray[CheckCamSign[i]][0] + n) = *((m_pAdjustCls->adjustImage_C[CheckCamSign[i]])->getImageInfo(0)
@@ -167,10 +167,24 @@ UINT AdjustThreadFunc::AdjustIm(LPVOID param)
 				pair[0] = m_pAdjustCls->adjustImage_C[CheckCamSign[j]]->getGeneratePair(0);
 				pair[1] = m_pAdjustCls->adjustImage_C[CheckCamSign[j]]->getGeneratePair(1);
 
-				m_pAdjustCls->showView->GenerateVectorNum(pair[0], pair[1], nRow, nCol, CheckCamSign[j]);
+				m_pAdjustCls->showView->GenerateVectorNum(pair_targetArray[CheckCamSign[j]][0], 
+					pair_targetArray[CheckCamSign[j]][1], nRow, nCol, CheckCamSign[j]);
+
+				//m_pAdjustCls->showView->GenerateVectorNum(pair[0], pair[1], nRow, nCol, CheckCamSign[j]);
 				m_pAdjustCls->linkImage->GenerateSameHeigth(m_pAdjustCls->adjustImage_C[CheckCamSign[j]],CheckCamSign[j]);
-				m_pAdjustCls->showView->LiveViewBySign(pair[0], CheckCamSign[j],
-					m_pAdjustCls->checkShow);
+// 				m_pAdjustCls->showView->LiveViewBySign(pair[0], CheckCamSign[j],
+// 					m_pAdjustCls->checkShow);
+				
+				int originSign = -1;
+				if(j == 0)
+				{
+					originSign = FIRSTCHECK;
+				}
+				else if(j == (m_pAdjustCls->Count - 1))
+				{
+					originSign = LASTCHECK;
+				}
+				m_pAdjustCls->showView->LiveViewByPhysical(pair_targetArray[CheckCamSign[j]][0], CheckCamSign[j], m_pAdjustCls->adjustImage_C[CheckCamSign[j]],originSign);
 // 				m_pAdjustCls->showView->DrawArrowPoisitionBySign(m_pAdjustCls->showView->px[CheckCamSign[j]],m_pAdjustCls->showView->py[CheckCamSign[j]], 
 // 					m_pAdjustCls->showView->pu[CheckCamSign[j]],m_pAdjustCls->showView->pv[CheckCamSign[j]],
 // 					m_pAdjustCls->showView->mSizeX[CheckCamSign[j]],m_pAdjustCls->showView->mSizeY[CheckCamSign[j]], j, m_pAdjustCls->checkShow);
