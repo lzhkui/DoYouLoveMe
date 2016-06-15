@@ -14,6 +14,10 @@
 #define IDC_CheckBT6                    107
 #define IDC_CheckBT7                    108
 #define IDC_CheckBT8                    109
+#define ID_INDICATOR_INIT               110
+#define ID_INDICATOR_CURRENT_CAMSIGN    111
+#define ID_INDICATOR_SAVE_IMG           112
+#define ID_INDICATOR_TIME               113
 #define IDR_MAINFRAME                   128
 #define IDR_MENU1                       129
 #define IDD_DIALOG1                     130
@@ -33,6 +37,7 @@
 #define IDD_CLB_CHILD6                  149
 #define IDD_CLB_CHILD7                  150
 #define IDD_CLB_CHILD8                  151
+#define IDD_CLB_CHILD9                  152
 #define IDC_SLIDER1                     1000
 #define IDC_CurExposure                 1001
 #define IDC_MinExposure                 1002
@@ -88,7 +93,12 @@
 #define IDC_BT_BEGING                   1047
 #define IDC_EDIT23                      1048
 #define IDC_BUTTON1                     1049
+#define IDC_LOAD_CLBSETTING             1049
 #define IDC_EDIT24                      1050
+#define DC_BT_RECLB                     1051
+#define IDC_BT_RECLB                    1051
+#define IDC_EDIT25                      1052
+#define IDC_EDIT26                      1053
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -150,7 +160,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        143
 #define _APS_NEXT_COMMAND_VALUE         32825
-#define _APS_NEXT_CONTROL_VALUE         1051
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

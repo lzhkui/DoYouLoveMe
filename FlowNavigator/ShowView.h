@@ -11,6 +11,8 @@
 
 #define FIRSTCHECK    0  //第一个选中的相机
 #define LASTCHECK     1  //最后一个选中的相机
+
+#define LOAD_PIV_DLL  1  //标志需要加载dll
 /*显示函数传入结构体*/
 struct LiveView
 {
@@ -64,7 +66,9 @@ class ShowView
 {
 public:
 	ShowView(CWnd *pWnd);
+	ShowView(CWnd * pWnd, HINSTANCE hinst); // signal 是后来为了动态加载piv算法dll做的
 	~ShowView(void);
+	void initial();
 
 	void initBmpInfo();
 

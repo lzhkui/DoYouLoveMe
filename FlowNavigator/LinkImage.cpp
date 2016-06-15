@@ -253,9 +253,10 @@ void LinkImage::GenerateSameHeigth(AdjustImage* adjustImage, int sign)
 {
 	this->adjustImage_C[sign] = adjustImage;
 
-	int topZero        = adjustImage->getLenWithTop();
 	int ImageSize      = adjustImage->getXRange() * adjustImage->getYRange();
 	int DestImageSize  = adjustImage->getYClientRange() * adjustImage->getXRange();
+
+	int topZero        = adjustImage->getLenWithTop() * adjustImage->getXRange(); //BugFix_20160608_ 忽略了乘以列数，导致显示位置出错
 
 	unsigned char* imageInfo = adjustImage->getGeneratePair(0); //总是取第一张图进行拼接
 
@@ -389,4 +390,9 @@ void LinkImage::StartLink(ShowView* showView, int* checkSign, int checkSignNum)
 		ColStartCover = adjustImage_C[checkSign[i]]->getSplitLinePixel();
 	}
 
+}
+
+unsigned char* LinkImage::getImageHasSameHeight(int sign)
+{
+	return this->ImageHasSameHeight[sign];
 }

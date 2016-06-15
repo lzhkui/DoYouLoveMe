@@ -1,0 +1,224 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AdjustImage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AdjustThreadFunc.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BuildDir.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CheckToShow.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CSetSampleDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ErrorCodeList.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FlowNavigator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FlowNavigatorDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageInfo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="KGloabalFunc.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="KGloabalVar.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="LinkImage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SetPivArg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SetSingleFrameValueDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SetValue.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ShowView.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WaitLoading.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ZoomImage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageCalibration.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageCalibrationDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageCalibrationZero.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageCalibrationOne.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageCalibrationTwo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageCalibrationThree.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageCalibrationFour.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageCalibrationDlg2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MyStatusBar.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ErrorCodeList.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AdjustImage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AdjustThreadFunc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BuildDir.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CheckToShow.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CSetSampleDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FlowNavigator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FlowNavigatorDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Users\Hawksoft\Desktop\HSPIV\HSPIV64\hs_piv.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageInfo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="KGloabalFunc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="KGloabalVar.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="KGlobalDefine.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LinkImage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SetPivArg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SetSingleFrameValueDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SetValue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ShowView.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="test.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WaitLoading.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ZoomImage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCalibration.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCalibrationDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCalibrationZero.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCalibrationOne.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCalibrationTwo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCalibrationThree.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCalibrationFour.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCalibrationDlg2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MyStatusBar.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\bitmap1.bmp">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\FlowNavigator.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\FlowNavigator.rc2">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="FlowNavigator.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

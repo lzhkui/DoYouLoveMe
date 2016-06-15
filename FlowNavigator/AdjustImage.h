@@ -7,13 +7,13 @@
 class AdjustImage
 {
 public:
-	AdjustImage(unsigned int imageSize, unsigned char* relatedArray = NULL);
-	AdjustImage::AdjustImage(J_tIMAGE_INFO* pAqImageInfo, unsigned char* relatedArray);
+	AdjustImage(unsigned int imageSize, unsigned int* relatedArray = NULL);
+	AdjustImage::AdjustImage(J_tIMAGE_INFO* pAqImageInfo, unsigned int* relatedArray);
 
 	~AdjustImage(void);	
 
 public:
-	unsigned char* relatedArray_k;
+	unsigned int* relatedArray_k;
 
 private:
 	J_tIMAGE_INFO* pAqImageInfo_k;
@@ -38,6 +38,7 @@ private:
 
 public:
 	void initialAdjust();
+	void setRelatedArray_k(unsigned int* relatedArray);
 
 	bool setImageInfo(J_tIMAGE_INFO *pAqImageInfo);
 	int  setPairImageInfo(int* i, J_tIMAGE_INFO* pAqImageInfo);
@@ -47,7 +48,9 @@ public:
 
 	//得到原始图片大小，初始化传入
 	unsigned int getImageSize(void);
+
 	//设置校正后的图片大小，
+	void setAdjustImageSize();
 	void setAdjustImageSize(unsigned int size);
 	//获得校正后的图片大小
 	unsigned int getAdjustImageSize();
@@ -72,6 +75,7 @@ public:
 	st_Range getSingleRange();
 
 	//所谓的“分辨率”，即1像素对应的实际物理距离
+	void setL(float Lx, float Ly);
 	void   setL(float* L);
 	float* getL();
 	//得到以像素为单位的范围

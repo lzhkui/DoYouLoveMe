@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "AdjustImage.h"
 
-AdjustImage::AdjustImage(unsigned int imageSize, unsigned char* relatedArray)
+AdjustImage::AdjustImage(unsigned int imageSize, unsigned int* relatedArray)
 {
 	//pAqImageInfo_k = (J_tIMAGE_INFO*)malloc(sizeof(J_tIMAGE_INFO) + imageSize);
 	relatedArray_k       = relatedArray;
@@ -11,7 +11,7 @@ AdjustImage::AdjustImage(unsigned int imageSize, unsigned char* relatedArray)
 	initialAdjust();
 }
 
-AdjustImage::AdjustImage(J_tIMAGE_INFO* pAqImageInfo, unsigned char* relatedArray)
+AdjustImage::AdjustImage(J_tIMAGE_INFO* pAqImageInfo, unsigned int* relatedArray)
 {
 	pAqImageInfo_k = (J_tIMAGE_INFO*)malloc(sizeof(J_tIMAGE_INFO) + pAqImageInfo->iImageSize);
 	if(isMallocOk(pAqImageInfo_k))
@@ -49,6 +49,10 @@ AdjustImage::~AdjustImage(void)
 		free(pAqImageInfo_k);
 		pAqImageInfo_k =NULL;
 	}
+
+	free(this->relatedArray_k);
+	this->relatedArray_k = NULL;
+
 	FreeGenerate_pair();
 }
 
@@ -62,6 +66,11 @@ void AdjustImage::FreeGenerate_pair()
 			Generate_pair[i] = NULL;
 		}
 	}
+}
+
+void AdjustImage::setRelatedArray_k(unsigned int* relatedArray)
+{
+	this->relatedArray_k = relatedArray;
 }
 
 bool AdjustImage::isMallocOk(J_tIMAGE_INFO* pAqImageInfo)
@@ -212,6 +221,12 @@ unsigned int AdjustImage::getImageSize(void)
 	return this->imageSize_k;
 }
 
+void AdjustImage::setAdjustImageSize()
+{
+	this->mAdj_ImgSize = getXRange() * getYRange(); 
+
+}
+
 void AdjustImage::setAdjustImageSize(unsigned int size)
 {
 	this->mAdj_ImgSize = size;
@@ -235,6 +250,12 @@ st_Range AdjustImage::getSingleRange()
 	return this->m_stRange;
 }
 
+void AdjustImage::setL(float Lx, float Ly)
+{
+	this->L[0] = Lx;
+	this->L[1] = Ly;
+}
+
 void AdjustImage::setL(float* L)
 {
 	ASSERT(L != NULL);
@@ -251,12 +272,19 @@ float* AdjustImage::getL()
 
 int AdjustImage::getXRange()
 {
-	return (int)((this->m_stRange.xMax - this->m_stRange.xMin) / (this->L[0]));
+	int xRange = (int)((this->m_stRange.xMax - this->m_stRange.xMin) / (this->L[0]) + 0.5);
+
+	int rest = xRange % 4;
+
+	xRange = xRange - rest;
+
+	return xRange;
 }
 
 int AdjustImage::getYRange()
 {
-	return (int)((this->m_stRange.yMax - this->m_stRange.yMin) / (this->L[1]));
+
+	return (int)((this->m_stRange.yMax - this->m_stRange.yMin) / (this->L[1]) + 0.5);
 }
 
 void AdjustImage::setAdjustXRange(int AdjustXMin, int AdjustXMax)

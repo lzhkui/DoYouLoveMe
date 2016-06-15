@@ -26,8 +26,9 @@
 #include "ImageCalibrationDlg.h"
 #include "ImageCalibrationDlg2.h"
 #include "ImageCalibration.h"
+#include "MyStatusBar.h"
 
-#define  MAX_CAMERAS 8
+#define MAX_CAMERAS 8
 #define NODE_NAME_WIDTH         (int8_t*)"Width"
 #define NODE_NAME_HEIGHT        (int8_t*)"Height"
 #define NODE_NAME_PIXELFORMAT   (int8_t*)"PixelFormat"
@@ -42,9 +43,28 @@
 
 #define MAX_IMG_COUNT 100
 
+#define WM_MY_MESSAGE_INIT (WM_USER + 100)   //打开系统进度
+#define SYSTEM_WILL_OPEN     0               //系统即将打开
+#define SYSTEM_OPEN_ING      1               //系统正在打开
+#define SYSTEM_IS_OPEN       2               //系统已就绪
+#define SYSTEM_NOT_OPEN      3             //系统未打开
+#define COLLECTION_NOT_START 4               //采集状态 重置
+#define CAM_IS_CLOSED        5               //已打开相机编号 重置
+
+ //定时器ID 
+#define SETTIMER_ID_SYSTEM_TIME 0    //状态栏系统时间
+#define SETTIMER_ID_COLLECTION  1    //状态栏采集状态
+
 extern int Count_Single[MAX_CAMERAS];//流场个数
 extern int Count_Once[MAX_CAMERAS];  //单次采集张数
 extern int Count_Space[MAX_CAMERAS]; //流场间隔
+
+//打开相机进度
+typedef struct Wait_inParam 
+{
+	MyStatusBar* statusBar;
+	int         CameraCount;
+}st_Wait;
 
 // CFlowNavigatorDlg 对话框
 class CFlowNavigatorDlg : public CDialog
@@ -56,12 +76,12 @@ public:
 // 对话框数据
 	enum { IDD = IDD_FLOWNAVIGATOR_DIALOG };
 
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 
 	//图像校正线程传入参数
 	pAdajustCLs m_pAdjustCls;
-	unsigned char *relateArr[MAX_CAMERAS];
+	unsigned int*relateArr[MAX_CAMERAS];
 
 	ShowView *showView;     //用于实时显示
 	ShowView *SV_AdjustArg; //校正线程传入参数
@@ -72,6 +92,10 @@ public:
 	ImageCalibrationDlg*  CLBdlg;
 	ImageCalibrationDlg2* CLBdlg2;
 	ImageCalibration* imgClb;
+
+	HICON m_hIcon;
+	int   m_CameraCount;       //实际相机个数
+	BOOL bt_on;                //true:打开状态 让菜单按钮变灰
 
 	//用于GDI+初始化函数
 private:
@@ -87,7 +111,22 @@ private:
 	BOOL b_LBUp;                   //左击抬起
 	int CamSign;                   //鼠标起点选中的camera标号
 	int CamSignNow;                //鼠标起点处当前的顺序编号
+	HINSTANCE hinst;               // piv dll 
 
+	unsigned int test_count_getImage[8];
+
+	CSetValue *setDlg;         //参数设置对话框
+	ImageInfo myImageInfo;
+	AdjustImage *adjustImage_C[MAX_CAMERAS];
+	SetPivArg* setPivArg;      //piv算法参数设置
+	CWaitLoading *dlgWait;     //进度条等待对话框
+
+	MyStatusBar m_statusBar;
+
+	pImageNode head[MAX_CAMERAS];
+	pImageNode pImage[MAX_CAMERAS];
+
+	st_Wait* st_wait;
 public:
 	FACTORY_HANDLE  m_hFactory;                                      // Factory Handle
 	CAM_HANDLE      m_hCam[MAX_CAMERAS];                             // Camera Handle
@@ -112,7 +151,7 @@ public:
  
 	BOOL OpenFactoryAndCamera();                    
 	void CloseFactoryAndCamera();
-	void StreamCBFunc(J_tIMAGE_INFO * pAqImageInfo);
+	void StreamCBFunc (J_tIMAGE_INFO * pAqImageInfo);
 	void StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo);
 	void StreamCBFunc2(J_tIMAGE_INFO * pAqImageInfo);
 	void StreamCBFunc3(J_tIMAGE_INFO * pAqImageInfo);
@@ -140,25 +179,36 @@ public:
 	//设置b_LBDown 状态
 	BOOL getLBDownState(CPoint point);
 
-// 实现
-protected:
-	HICON m_hIcon;
-	int   m_CameraCount;       //实际相机个数
-	BOOL bt_on;                //true:打开状态 让菜单按钮变灰
 
+	static int SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo,int Count,
+		const char* numCam,
+		const char* path = NULL, const char* fileName = NULL);
+
+	//static UINT Write2File(LPVOID param);//类中不能加static
+
+	int InsertHead(pImageNode pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls, 
+		pImageNode pHead);
+
+	// 		/*内部使用了imageInfo类的静态函数,使用时要包含imageInfo.h   用了Count   CCriticalSection全局变量 */
+	// 	static int SaveAndDelTail(pImageNode pHead,
+	// 			J_tIMAGE_INFO& m_CnvImageInfo,/* int Count,*/
+	// 			const char* numCam,
+	// 			const char* path = NULL, const char* fileName = NULL);
+
+	void  insertSingle(int* Count_Single, int* Count_Once, int* Space_Frame,
+		const int Copy_Space_Frame, const int CountOnce,
+		pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
+		pImageNode* pHead);
+	void insertBySign(BOOL bContinuous, BOOL bSingleFrame, CCriticalSection *pCs, int* Count,
+		int* Count_Single, int* Count_Once, int* Space_Frame,
+		const int Copy_Space_Frame, const int Copy_CountOnce,
+		pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
+		pImageNode* pHead);
+
+	void EndControl(void);
+	void InitPathDir(CString dstDir, CString SubDir[], UINT_K length);//创建项目工程
 
 private:
-	unsigned int test_count_getImage[8];
-	
-	CSetValue *setDlg;         //参数设置对话框
-	ImageInfo myImageInfo;
-	AdjustImage *adjustImage_C[MAX_CAMERAS];
-	SetPivArg* setPivArg;      //piv算法参数设置
-
-
-	pImageNode head[MAX_CAMERAS];
-	pImageNode pImage[MAX_CAMERAS];
-
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
@@ -192,39 +242,13 @@ public:
 	afx_msg void OnReboot();
 	afx_msg void OnLinkFlow();
 
-	static int SaveImage_CWJ(J_tIMAGE_INFO* pAqImageInfo, J_tIMAGE_INFO& m_CnvImageInfo,int Count,
-		 const char* numCam,
-		 const char* path = NULL, const char* fileName = NULL);
-
-	public:
-	//static UINT Write2File(LPVOID param);//类中不能加static
-
-	int InsertHead(pImageNode pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls, 
-			pImageNode pHead);
-
-// 		/*内部使用了imageInfo类的静态函数,使用时要包含imageInfo.h   用了Count   CCriticalSection全局变量 */
-// 	static int SaveAndDelTail(pImageNode pHead,
-// 			J_tIMAGE_INFO& m_CnvImageInfo,/* int Count,*/
-// 			const char* numCam,
-// 			const char* path = NULL, const char* fileName = NULL);
-
-	void  insertSingle(int* Count_Single, int* Count_Once, int* Space_Frame,
-		const int Copy_Space_Frame, const int CountOnce,
-		pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
-		pImageNode* pHead);
-	void insertBySign(BOOL bContinuous, BOOL bSingleFrame, CCriticalSection *pCs, int* Count,
-		int* Count_Single, int* Count_Once, int* Space_Frame,
-		const int Copy_Space_Frame, const int Copy_CountOnce,
-		pImageNode* pImage, J_tIMAGE_INFO* pAqImageInfo, ImageInfo cls,  
-		pImageNode* pHead);
-
-	void EndControl(void);
-	void InitPathDir(CString dstDir, CString SubDir[], UINT_K length);//创建项目工程
-
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnOpenproj();
 	afx_msg void OnMouseLeave();
 	afx_msg void OnImageCalibrate();
 	afx_msg void OnImageCalibrate2();
+
+	afx_msg LRESULT OnMyMessegeInit(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnCheckBtClick(UINT uID);
 };

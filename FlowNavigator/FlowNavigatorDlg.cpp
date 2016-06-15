@@ -45,7 +45,6 @@ g_cs4,g_cs5,g_cs6,g_cs7;
 
 CCriticalSection g_cs[MAX_CAMERAS];
 
-CWaitLoading *dlgWait;        //进度条等待对话框
 UINT CreateWaitDlg(LPVOID pParam);
 //UINT Write2File(LPVOID param);
 
@@ -56,8 +55,24 @@ IDC_CheckBT5,IDC_CheckBT6,IDC_CheckBT7,IDC_CheckBT8};
 #define DOUBLECLK_OUT 1
 int DoubleClk = DOUBLECLK_IN;
 
-#define  KDebug 0
+static UINT indicators[] = 
+{
+	ID_INDICATOR_INIT,
+	ID_INDICATOR_SAVE_IMG,
+	ID_INDICATOR_CURRENT_CAMSIGN,
+	ID_INDICATOR_TIME,
+};
 
+#define INDEX_INDICATOR_INIT            0
+#define INDEX_INDICATOR_SAVE_IMG        1
+#define INDEX_INDICATOR_CURRENT_CAMSIGN 2
+#define INDEX_INDICATOR_TIME            3
+#define PRE_ID_INDICATOR_TIME     ID_INDICATOR_CURRENT_CAMSIGN
+
+static int openCamCount = 0;       // 已打开相机的数量
+int        CamCount_NotNULL = -1;  //-1：未操作 0：空的 1：非空
+
+static int initCount = 0;          //需要采集的图片数量
 
 TOOLINFO g_toolItem;
 BOOL g_TrackingMouse = FALSE;
@@ -119,7 +134,7 @@ void DestroyCheckCamBt(CButton *bt[], UINT ID[])
 	}
 }
 
-void EnableCheckCamBt(CWnd * pWnd, UINT ID[], BOOL enable)
+void ShowCheckCamBt(CWnd * pWnd, UINT ID[], BOOL enable)
 {
 	for (int i = 0; i < 8; i++)
 	{
@@ -127,6 +142,14 @@ void EnableCheckCamBt(CWnd * pWnd, UINT ID[], BOOL enable)
 		{
 			pWnd->GetDlgItem(ID[i])->ShowWindow(enable);
 		}
+	}
+}
+
+void EnableCheckCamBt(CButton *bt[], int maxCam, int validCam, BOOL enable)
+{
+	for (int i = validCam; i < maxCam; i++)
+	{
+		bt[i]->EnableWindow(enable);
 	}
 }
 
@@ -183,7 +206,20 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
+#ifdef MYTEST_LOAD_MATLAB_DLL
+	//初始化matlab加载需要的库
+	if( !mclInitializeApplication(NULL, 0) )  
+	{          
+		AfxMessageBox(_T("无法初始化mt库!"), MB_ICONERROR);
+		exit(1);  
+	}  
 
+	if (!hFigInitialize() )  
+	{  
+		AfxMessageBox(_T("无法初始化mt库!"), MB_ICONERROR);
+		exit(1);  
+	}  
+#endif
 	m_hFactory       = NULL;
 	m_CameraCount    = 0;
 	CtrLine          = 0;
@@ -201,6 +237,9 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 	CLBdlg           = NULL;
 	CLBdlg2          = NULL;
 
+	st_wait          = (st_Wait*)malloc(sizeof(st_Wait) + sizeof(MyStatusBar));
+	st_wait->CameraCount = 0;
+
 	// Initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
@@ -216,11 +255,14 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 		RecvFrame[i] = 0;
 		(m_CnvImageInfo[i]).pImageBuffer = NULL;// 必须置空，否则后面不分配空间
 
+		relateArr[i] = NULL;
+
 		checkBt[i]   = new CButton;
 
 		adjustImage_C[i] = new AdjustImage(CAMERA_PIXEL_ROW*CAMERA_PIXEL_COL);
-		imgClb = new ImageCalibration(adjustImage_C, MAX_CAMERAS);
 	}
+	imgClb = new ImageCalibration(adjustImage_C, MAX_CAMERAS);
+
 	bmpinfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpinfo,0,sizeof(BITMAPINFO)); 
 	bmpinfo->bmiHeader.biPlanes = 1;    
@@ -257,6 +299,18 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 // 	m_hPalete.CreatePalette(pLogPal);
 	// We use a critical section to protect the update of the pixel value display
 	//InitializeCriticalSection(&m_CriticalSection);
+
+
+	hinst = LoadLibraryEx(DEFAULT_PIV_DLL_LINK_PATH, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);//第一个参数后缀可以不加...
+	int result = GetLastError();
+
+	if(result != 0)
+	{
+		CString txt;
+		txt.Format(_T("load lib GetLastError=%d"), result);
+		AfxMessageBox(txt);
+	}
+
 }
 
 CFlowNavigatorDlg::~CFlowNavigatorDlg()
@@ -265,7 +319,7 @@ CFlowNavigatorDlg::~CFlowNavigatorDlg()
 	delete showView;
 	delete checkShow;
 	delete zoomImage;
-
+	delete imgClb;
 	if (m_pAdjustCls != NULL)
 	{
 		free(m_pAdjustCls);
@@ -281,7 +335,17 @@ CFlowNavigatorDlg::~CFlowNavigatorDlg()
 		{
 			delete checkBt[i];
 		}
+
+		delete adjustImage_C[i];
+		adjustImage_C[i] = NULL;
 	}
+	FreeLibrary(hinst);
+
+#ifdef MYTEST_LOAD_MATLAB_DLL
+	hFigTerminate();  
+	mclTerminateApplication();  
+#endif
+
 }
 
 void CFlowNavigatorDlg::DoDataExchange(CDataExchange* pDX)
@@ -322,6 +386,9 @@ BEGIN_MESSAGE_MAP(CFlowNavigatorDlg, CDialog)
 	ON_WM_MOUSELEAVE()
 	ON_COMMAND(ID_ImageCalibrate, &CFlowNavigatorDlg::OnImageCalibrate)
 	ON_COMMAND(ID_ImageCalibrate2, &CFlowNavigatorDlg::OnImageCalibrate2)
+
+	ON_MESSAGE(WM_MY_MESSAGE_INIT, OnMyMessegeInit)     //自定义消息 系统打开进度
+	ON_COMMAND_RANGE(IDC_CheckBT1, IDC_CheckBT8, OnCheckBtClick)
 END_MESSAGE_MAP()
 
 
@@ -367,6 +434,35 @@ BOOL CFlowNavigatorDlg::OnInitDialog()
 
 	g_hwndTrackingTT = CreateTrackingToolTip(IDOK, m_hWnd, _T("ToolTip")); 
 
+	if(!m_statusBar.CreateEx(this, SBARS_SIZEGRIP) || 
+		!m_statusBar.SetIndicators(indicators, sizeof(indicators) / sizeof(UINT)))
+	{
+		TRACE(_T("fail to create status bar!\n"));
+
+		return -1;
+	}
+	//设置状态栏高度
+	m_statusBar.GetStatusBarCtrl().SetMinHeight(30);
+	CRect rcClientOld;
+	CRect rcClientNew;
+	GetClientRect(&rcClientOld);
+	//m_statusBar.MoveWindow(0,rcClientOld.bottom-20,rcClientOld.right,20);// 调整状态栏的位置和大小
+	RepositionBars(AFX_IDW_CONTROLBAR_FIRST,AFX_IDW_CONTROLBAR_LAST,0,reposQuery,rcClientNew);
+
+	CRect rcWindow;
+	GetWindowRect(rcWindow);
+	// 修改对话框宽度和高度,即让对话框添加上 CStatusBar 的高度和适应 CStatusBar 的宽度
+	rcWindow.right  += rcClientOld.Width() - rcClientNew.Width();   
+    rcWindow.bottom += rcClientOld.Height() - rcClientNew.Height();
+
+// 	rcWindow.right  += 20;
+// 	rcWindow.bottom += 100;
+	// 移动对话框
+	MoveWindow(rcWindow,TRUE); 
+	m_statusBar.SetPaneInfo(INDEX_INDICATOR_TIME - 1,  PRE_ID_INDICATOR_TIME, SBPS_STRETCH, 20);
+
+	RepositionBars(AFX_IDW_CONTROLBAR_FIRST,AFX_IDW_CONTROLBAR_LAST,0);
+	SetTimer(SETTIMER_ID_SYSTEM_TIME, 1000, NULL);
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -424,7 +520,7 @@ void CFlowNavigatorDlg::OnPaint()
 	int showHeight = showWidth * 2048 / 2560; // 显示高度
 	int showStartHeight = rect.Height() / 2 - showHeight / 2;
 
-	if((CtrLine == 81) && (DoubleClk == DOUBLECLK_IN) && (CloseSystem == FALSE))
+	if((CtrLine == 81) && (DoubleClk == DOUBLECLK_IN) && (CloseSystem == FALSE) && (mAdjust != TRUE))
 	{
 		DrawLine(this, rect.left, showStartHeight, rect.right, showStartHeight);
 		DrawLine(this, rect.left, showStartHeight + showHeight, rect.right, showStartHeight + showHeight);
@@ -546,7 +642,12 @@ BOOL CFlowNavigatorDlg::OpenFactoryAndCamera()
 	m_CameraCount = iValidCamera > MAX_CAMERAS ? MAX_CAMERAS : iValidCamera;
 	TRACE("iValidCamera = %d MAX_CAMERAS = %d m_CameraCount = %d\n",iValidCamera,MAX_CAMERAS,m_CameraCount);
 
+	st_wait->CameraCount = m_CameraCount;//打开进度线程
+	CamCount_NotNULL     = 1;
 	NODE_HANDLE hNode;
+	int I = 0;
+	CString paneText;
+
 	for(int j = 0; j < m_CameraCount; j++)
 	{
 		// Get the pixelformat from the camera
@@ -624,6 +725,12 @@ BOOL CFlowNavigatorDlg::OpenFactoryAndCamera()
 		}
 		TRACE("Opening stream succeeded\n");
 
+		openCamCount++;
+		I = openCamCount * 100 / (st_wait->CameraCount);
+
+	    paneText.Format(_T("系统状态:已完成%d%%"), I);
+	    m_statusBar.SetPaneText(INDEX_INDICATOR_INIT, paneText, TRUE);
+
 	}//	for(int j = 0; j < m_CameraCount; j++)
 	for (int k = 0; k < m_CameraCount;k++)
 	{
@@ -651,6 +758,8 @@ void CFlowNavigatorDlg::CloseFactoryAndCamera()
 			}
 			m_hThread[i]= NULL;
 			TRACE("Closed stream %d\n",i);
+
+			
 		}
 
 		if (m_hCam[i] != NULL)
@@ -667,6 +776,8 @@ void CFlowNavigatorDlg::CloseFactoryAndCamera()
 			}			
 			m_hCam[i] = NULL;
 			TRACE("Closed camera %d\n",i);
+
+			openCamCount--;
 		}
 	}
 	if(m_hFactory != NULL)
@@ -810,7 +921,7 @@ int SaveImage(CString CurrentProPath,
 		char path[MAX_PATH]={0};
 		if(m_CurrentProPath == DEFAULT_PATH)
 		{
-			CFlowNavigatorDlg::SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo,*Count,numCam);
+			CFlowNavigatorDlg::SaveImage_CWJ(pAqImageInfo,m_CnvImageInfo,*Count,numCam);		
 		}
 		else
 		{
@@ -819,9 +930,9 @@ int SaveImage(CString CurrentProPath,
 				NULL, 0, NULL, NULL);
 			WideCharToMultiByte(CP_ACP, 0, tempPath, tempPath.GetLength(), path, nLength, NULL, NULL);
 			//wcstombs(path, m_CurrentProPath, m_CurrentProPath.GetLength());//这个直接替代上面几句话
+			CFlowNavigatorDlg::SaveImage_CWJ(pAqImageInfo, m_CnvImageInfo, *Count, numCam , path);
 		}
 
-		CFlowNavigatorDlg::SaveImage_CWJ(pAqImageInfo, m_CnvImageInfo, *Count, numCam , path);
 		(*Count)--;
 	}
 
@@ -839,8 +950,10 @@ int SaveImageBySign(BOOL bContinuous, BOOL bSingleFrame,
 
 		if (*Count_Continuous == 0)
 		{
-			//CString text(numCamConti);
-			AfxMessageBox(_T("连续模式采集完成"), MB_ICONINFORMATION);
+			CString camSign(numCamConti);
+			CString text;
+			text.Format(_T("相机%s采集完成"), camSign);
+			AfxMessageBox(text, MB_ICONINFORMATION);
 			return -1;
 		}
 	}
@@ -850,7 +963,11 @@ int SaveImageBySign(BOOL bContinuous, BOOL bSingleFrame,
 
 		if (*Count_Single == 0)
 		{
-			AfxMessageBox(_T("潮流模式采集完成"), MB_ICONINFORMATION);
+			CString camSign(numCamConti);
+			CString text;
+			text.Format(_T("相机%s采集完成"), camSign);
+			AfxMessageBox(text, MB_ICONINFORMATION);
+
 			return -1;
 		}
 	}
@@ -1948,7 +2065,8 @@ void CFlowNavigatorDlg::InitializeControls()
 
 void CFlowNavigatorDlg::EndControl(void)
 {
-	b_isContinuous = FALSE;
+	b_isContinuous  = FALSE;
+	b_isSingleFrame = FALSE;
 	mAdjust = FALSE;
 	for (int i = 0; i < MAX_CAMERAS; i++)
 	{
@@ -2000,32 +2118,107 @@ void CFlowNavigatorDlg::ShowErrorMsg(CString message, J_STATUS_TYPE error)
 	AfxMessageBox(errorMsg, MB_OKCANCEL | MB_ICONINFORMATION);
 
 }
-
+/*
 UINT CreateWaitDlg(LPVOID pParam)
 {
-	dlgWait = new CWaitLoading;
-	dlgWait->Create(IDD_DIALOG2,AfxGetMainWnd());
-	dlgWait->ShowWindow(SW_SHOW);
-	dlgWait->UpdateWindow();
-	dlgWait->StartTimes();
-	Sleep(5000);
+	st_Wait* st_wait = (st_Wait*)pParam;
+	CString paneText;
+	int I = 0;
+	HWND hwnd = AfxGetMainWnd()->GetSafeHwnd();
+
+	WPARAM wParam;
+	LPARAM lParam;
+	int system_state = -1;
+	int content      = -1;
+	lParam           = (LPARAM)content;
+
+	while (st_wait->CameraCount == 0)
+	{
+		system_state = SYSTEM_WILL_OPEN;
+		wParam       = (WPARAM)system_state;
+		::SendMessage(hwnd, WM_MY_MESSAGE_INIT, wParam, lParam);
+
+		Sleep(10);
+	}
+	while(openCamCount < st_wait->CameraCount)
+	{
+		system_state = SYSTEM_OPEN_ING;
+		wParam       = (WPARAM)system_state;
+		::SendMessage(hwnd, WM_MY_MESSAGE_INIT, wParam, lParam);
+	
+		Sleep(50);
+	}
+
+	if(openCamCount == st_wait->CameraCount)
+	{
+		system_state = SYSTEM_IS_OPEN;
+		wParam       = (WPARAM)system_state;
+
+		::SendMessage(hwnd, WM_MY_MESSAGE_INIT, wParam, lParam);
+	}
 
 	return 0;
 }
+*/
+
+UINT CreateWaitDlg(LPVOID pParam)
+{
+	st_Wait* st_wait = (st_Wait*)pParam;
+	CString paneText;
+	int I = 0;
+	HWND hwnd = AfxGetMainWnd()->GetSafeHwnd();
+
+
+	if (st_wait->CameraCount == 0)
+	{
+		st_wait->statusBar->SetPaneText(INDEX_INDICATOR_INIT, _T("系统状态: 正在打开"), TRUE);
+	}
+	while(openCamCount <= st_wait->CameraCount)
+	{
+		if((openCamCount == st_wait->CameraCount) && (st_wait->CameraCount != 0))
+		{
+			st_wait->statusBar->SetPaneText(INDEX_INDICATOR_INIT, _T("系统状态: 已就绪"), TRUE);
+			break;
+		}
+		if(st_wait->CameraCount == 0)
+		{
+			I = 0;
+		}
+		else
+		{
+			I = openCamCount * 100 / (st_wait->CameraCount);
+		}
+
+		paneText.Format(_T("系统状态:已完成%d%%"), I);
+		st_wait->statusBar->SetPaneText(INDEX_INDICATOR_INIT, paneText, TRUE);
+
+		Sleep(100);
+	}
+
+
+	return 0;
+}
+
+
 void CFlowNavigatorDlg::OnOpenCamera()
 {
 	// TODO: 在此添加命令处理程序代码
-	TRACE("OpenCamera\n");
+	TRACE(_T("OpenCamera\n"));
 
-	//AfxBeginThread(CreateWaitDlg,this);
+	//st_wait->statusBar   = &m_statusBar;
+	//::AfxBeginThread(CreateWaitDlg,st_wait,THREAD_BASE_PRIORITY_MAX);
 
-	dlgWait = new CWaitLoading;
-	dlgWait->Create(IDD_DIALOG2,AfxGetMainWnd());
-	dlgWait->ShowWindow(SW_SHOW);
-	dlgWait->UpdateWindow();
-	dlgWait->StartTimes();
+//	dlgWait = new CWaitLoading;
+// 	dlgWait->Create(IDD_DIALOG2,AfxGetMainWnd());
+// 	dlgWait->ShowWindow(SW_SHOW);
+// 	dlgWait->UpdateWindow();
+// 	dlgWait->StartTimes();
+
+	m_statusBar.SetPaneText(INDEX_INDICATOR_INIT, _T("系统状态: 正在打开"), TRUE);
 
 	OpenFactoryAndCamera();
+
+	m_statusBar.SetPaneText(INDEX_INDICATOR_INIT, _T("系统状态: 已就绪"), TRUE);
 
 	bt_on = TRUE;
 	CMenu * pMenu = GetMenu();
@@ -2044,12 +2237,28 @@ void CFlowNavigatorDlg::OnCloseCamera()
 		DestroyCheckCamBt(checkBt, Check_ID);
 	}
 	CloseFactoryAndCamera();
+	m_statusBar.SetPaneText(INDEX_INDICATOR_INIT, _T("系统状态：     未打开"));
 	Invalidate(TRUE);
 
 	bt_on = FALSE;
 	CMenu * pMenu = GetMenu();
 	pMenu->EnableMenuItem(ID_OpenCamera,bt_on);
 	CtrLine = 0;
+	openCamCount = 0;
+	st_wait->CameraCount = 0;
+
+	WPARAM wParam;
+	LPARAM lParam;
+	int system_state = -1;
+	int content      = -1;
+	lParam           = (LPARAM)content;
+
+	for (int i = SYSTEM_NOT_OPEN; i < CAM_IS_CLOSED+1; i++)
+	{
+		system_state = i;
+		wParam       = (WPARAM)system_state;
+		SendMessage(WM_MY_MESSAGE_INIT, wParam, lParam);
+	}
 }
 
 void CFlowNavigatorDlg::OnQuit()
@@ -2141,11 +2350,13 @@ void CFlowNavigatorDlg::On8col1line()
 	if (GetDlgItem(Check_ID[0]) == NULL)
 	{
 		CreateCheckCamBt(checkBt, rect, this, Check_ID);
+		EnableCheckCamBt(checkBt, MAX_CAMERAS, m_CameraCount, FALSE);
 	}
 	else
 	{
 		DestroyCheckCamBt(checkBt, Check_ID);
 		CreateCheckCamBt(checkBt, rect, this, Check_ID);
+		EnableCheckCamBt(checkBt, MAX_CAMERAS, m_CameraCount, FALSE);
 	}
 	
 	int showWidth = rect.Width() / 8;
@@ -2203,7 +2414,7 @@ UINT Write2File(LPVOID param)
 
 		if (pTail == NULL)
 		{
-			Sleep(10);
+			Sleep(80);
 		}
 		else
 		{
@@ -2275,7 +2486,7 @@ UINT Write2File1(LPVOID param)
 
 		if (pTail == NULL)
 		{
-			Sleep(10);
+			Sleep(80);
 		}
 		else
 		{
@@ -2288,7 +2499,7 @@ UINT Write2File1(LPVOID param)
 				ImageInfo::DelTail(pHead);
 				g_cs[1].Unlock();
 
-				b_isContinuous = b_isSingleFrame = FALSE;
+				//b_isContinuous = b_isSingleFrame = FALSE;
 				goto End;
 			}
 
@@ -2303,7 +2514,7 @@ End:
 } 
 UINT Write2File2(LPVOID param)
 {
-	while(b_isContinuous)
+	while(b_isSingleFrame || b_isContinuous)
 	{
 		pImageNode pHead = (pImageNode)param;
 		g_cs[2].Lock();
@@ -2312,7 +2523,7 @@ UINT Write2File2(LPVOID param)
 
 		if (pTail == NULL)
 		{
-			Sleep(10);
+			Sleep(80);
 		}
 		else
 		{
@@ -2325,7 +2536,7 @@ UINT Write2File2(LPVOID param)
 				ImageInfo::DelTail(pHead);
 				g_cs[2].Unlock();
 
-				b_isContinuous = b_isSingleFrame = FALSE;
+				//b_isContinuous = b_isSingleFrame = FALSE;
 				goto End;
 			}
 
@@ -2339,7 +2550,7 @@ End:
 } 
 UINT Write2File3(LPVOID param)
 {
-	while(b_isContinuous)
+	while(b_isSingleFrame || b_isContinuous)
 	{
 		pImageNode pHead = (pImageNode)param;
 		g_cs[3].Lock();
@@ -2348,7 +2559,7 @@ UINT Write2File3(LPVOID param)
 
 		if (pTail == NULL)
 		{
-			Sleep(10);
+			Sleep(80);
 		}
 		else
 		{
@@ -2361,7 +2572,7 @@ UINT Write2File3(LPVOID param)
 				ImageInfo::DelTail(pHead);
 				g_cs[3].Unlock();
 
-				b_isContinuous = b_isSingleFrame = FALSE;
+				//b_isContinuous = b_isSingleFrame = FALSE;
 				goto End;
 			}
 
@@ -2375,7 +2586,7 @@ End:
 } 
 UINT Write2File4(LPVOID param)
 {
-	while(b_isContinuous)
+	while(b_isSingleFrame || b_isContinuous)
 	{
 		pImageNode pHead = (pImageNode)param;
 		g_cs[4].Lock();
@@ -2384,7 +2595,7 @@ UINT Write2File4(LPVOID param)
 
 		if (pTail == NULL)
 		{
-			Sleep(10);
+			Sleep(80);
 		}
 		else
 		{
@@ -2397,7 +2608,7 @@ UINT Write2File4(LPVOID param)
 				ImageInfo::DelTail(pHead);
 				g_cs[4].Unlock();
 
-				b_isContinuous = b_isSingleFrame = FALSE;
+				//b_isContinuous = b_isSingleFrame = FALSE;
 				goto End;
 			}
 
@@ -2411,7 +2622,7 @@ End:
 } 
 UINT Write2File5(LPVOID param)
 {
-	while(b_isContinuous)
+	while(b_isSingleFrame || b_isContinuous)
 	{
 		pImageNode pHead = (pImageNode)param;
 		g_cs[5].Lock();
@@ -2420,7 +2631,7 @@ UINT Write2File5(LPVOID param)
 
 		if (pTail == NULL)
 		{
-			Sleep(10);
+			Sleep(80);
 		}
 		else
 		{
@@ -2433,7 +2644,7 @@ UINT Write2File5(LPVOID param)
 				ImageInfo::DelTail(pHead);
 				g_cs[5].Unlock();
 
-				b_isContinuous = b_isSingleFrame = FALSE;
+				//b_isContinuous = b_isSingleFrame = FALSE;
 				goto End;
 			}
 
@@ -2447,7 +2658,7 @@ End:
 } 
 UINT Write2File6(LPVOID param)
 {
-	while(b_isContinuous)
+	while(b_isSingleFrame || b_isContinuous)
 	{
 		pImageNode pHead = (pImageNode)param;
 		g_cs[6].Lock();
@@ -2456,7 +2667,7 @@ UINT Write2File6(LPVOID param)
 
 		if (pTail == NULL)
 		{
-			Sleep(10);
+			Sleep(80);
 		}
 		else
 		{
@@ -2469,7 +2680,7 @@ UINT Write2File6(LPVOID param)
 				ImageInfo::DelTail(pHead);
 				g_cs[6].Unlock();
 
-				b_isContinuous = b_isSingleFrame = FALSE;
+				//b_isContinuous = b_isSingleFrame = FALSE;
 				goto End;
 			}
 
@@ -2483,7 +2694,7 @@ End:
 } 
 UINT Write2File7(LPVOID param)
 {
-	while(b_isContinuous)
+	while(b_isSingleFrame || b_isContinuous)
 	{
 		pImageNode pHead = (pImageNode)param;
 		g_cs[7].Lock();
@@ -2492,7 +2703,7 @@ UINT Write2File7(LPVOID param)
 
 		if (pTail == NULL)
 		{
-			Sleep(10);
+			Sleep(80);
 		}
 		else
 		{
@@ -2505,7 +2716,7 @@ UINT Write2File7(LPVOID param)
 				ImageInfo::DelTail(pHead);
 				g_cs[7].Unlock();
 
-				b_isContinuous = b_isSingleFrame = FALSE;
+				//b_isContinuous = b_isSingleFrame = FALSE;
 				goto End;
 			}
 
@@ -2531,6 +2742,8 @@ void CFlowNavigatorDlg::OnContinuous()
 		AfxMessageBox(_T("请打开相机!"),MB_ICONINFORMATION);
 		return;
 	}
+
+	b_isSingleFrame = FALSE;
 	CSetSampleDlg *samDlg;
 	samDlg = new CSetSampleDlg;
 	samDlg->m_CameraCount = m_CameraCount;
@@ -2541,10 +2754,18 @@ void CFlowNavigatorDlg::OnContinuous()
 	samDlg->DoModal();
 	b_isContinuous = TRUE;
 // 	Count1=Count2=Count3=Count4=Count5=Count6=Count7=samDlg->Count;
-	for (int i = 0; i < m_CameraCount; i++)
+
+	initCount = samDlg->Count;
+	//获取当前选中的数量，位置等
+	checkShow->setCheckCamSign(checkBt, MAX_CAMERAS);
+	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
+
+	int* checkCamSign = checkShow->getCheckCamSign();
+	int num = checkShow->getNum();
+	for (int i = 0; i < num; i++)
 	{
-		Count[i]  = samDlg->Count;
-		Count_[i] = samDlg->Count;
+		Count[checkCamSign[i]]  = samDlg->Count;
+		Count_[checkCamSign[i]] = samDlg->Count;
 	}
 		
 	hThread[0] = ::AfxBeginThread(Write2File ,head[0],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
@@ -2556,6 +2777,7 @@ void CFlowNavigatorDlg::OnContinuous()
 	hThread[6] = ::AfxBeginThread(Write2File6,head[6],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 	hThread[7] = ::AfxBeginThread(Write2File7,head[7],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 
+	SetTimer(SETTIMER_ID_COLLECTION, 1000, NULL);
 }
 
 void CFlowNavigatorDlg::OnSingleFrame()
@@ -2583,13 +2805,22 @@ void CFlowNavigatorDlg::OnSingleFrame()
 	}
 
 	Space_Frame[0] = Count_Space[0] * (int)d_val;
-	for (int i = 0; i < MAX_CAMERAS; i++)
+
+	//获取当前选中的数量，位置等
+	checkShow->setCheckCamSign(checkBt, MAX_CAMERAS);
+	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
+
+	int* checkCamSign = checkShow->getCheckCamSign();
+	int num = checkShow->getNum();
+
+	for (int i = 0; i < num; i++)
 	{
-		Space_Frame[i]      = Space_Frame[0];
-		Copy_Space_Frame[i] = Space_Frame[0];
-		Copy_Count_Once[i]  = Count_Once[0];
-		Total_Frame[i]      = Count_Once[0] * Count_Single[0];
+		Space_Frame[checkCamSign[i]]      = Space_Frame[0];
+		Copy_Space_Frame[checkCamSign[i]] = Space_Frame[0];
+		Copy_Count_Once[checkCamSign[i]]  = Count_Once[0];
+		Total_Frame[checkCamSign[i]]      = Count_Once[0] * Count_Single[0];
 	}
+	initCount = Count_Once[0] * Count_Single[0];
 	b_isSingleFrame = TRUE;
 	hThread[0] = ::AfxBeginThread(Write2File ,head[0],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 	hThread[1] = ::AfxBeginThread(Write2File1,head[1],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
@@ -2600,15 +2831,86 @@ void CFlowNavigatorDlg::OnSingleFrame()
 	hThread[6] = ::AfxBeginThread(Write2File6,head[6],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 	hThread[7] = ::AfxBeginThread(Write2File7,head[7],THREAD_PRIORITY_NORMAL/*,0,CREATE_SUSPENDED*/);
 
+	SetTimer(SETTIMER_ID_COLLECTION, 1000, NULL);
 }
 
 void CFlowNavigatorDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-// 	Invalidate(TRUE);
-	TRACE("这个在主窗口中\n");
-	//::AfxMessageBox((LPCTSTR)"1",MB_ICONINFORMATION);
+	CTime   time;
+	CString str_time;
+	int I        = 0;     //采集进度
+	int maxCount = 0;
+	CString text;
 
+	int collect_state = 0;
+	switch(nIDEvent)
+	{
+		case SETTIMER_ID_SYSTEM_TIME:
+			time     = CTime::GetCurrentTime();
+			str_time = time.Format(_T("%H:%M:%S"));
+
+			m_statusBar.SetPaneText(INDEX_INDICATOR_TIME, str_time, TRUE);
+
+			break;
+		case SETTIMER_ID_COLLECTION:
+			//未选择相机，终止定时器以及开启的线程
+			if((checkShow->getNum() == 0) || (initCount == 0))
+			{
+				KillTimer(SETTIMER_ID_COLLECTION);
+				b_isContinuous  = FALSE;
+				b_isSingleFrame = FALSE;
+
+				break;
+			}
+
+			if(b_isContinuous)
+			{
+				maxCount = FindMax_Int(Count_, MAX_CAMERAS);
+				I        = (initCount - maxCount) * 100 / initCount;
+				text.Format(_T("采集状态: 已采集%d%%"), I);
+				m_statusBar.SetPaneText(INDEX_INDICATOR_SAVE_IMG, text, TRUE);
+				
+				for (int i = 0; i < m_CameraCount; i++)
+				{
+					if(Count_[i] == 0)
+					{
+						collect_state++;
+					}
+				}
+			}
+			else if(b_isSingleFrame)
+			{
+				maxCount = FindMax_Int(Total_Frame, MAX_CAMERAS);
+				I        = (initCount - maxCount) * 100 / initCount;
+				text.Format(_T("采集状态: 已采集%d%%"), I);
+				m_statusBar.SetPaneText(INDEX_INDICATOR_SAVE_IMG, text, TRUE);
+			
+				for (int i = 0; i < MAX_CAMERAS; i++)
+				{
+					if(Total_Frame[i] == 0)
+					{
+						collect_state++;
+					}
+				}
+			}
+			if(collect_state == m_CameraCount)
+			{
+				KillTimer(SETTIMER_ID_COLLECTION);
+				b_isContinuous  = FALSE;
+				b_isSingleFrame = FALSE;
+
+				for (int j = 0; j < MAX_CAMERAS; j++)
+				{
+					Count_[j] = 0;
+					Count[j]  = 0;
+				}
+			}
+			break;
+
+		default:
+			;
+	}
 	CDialog::OnTimer(nIDEvent);
 }
 
@@ -2653,36 +2955,55 @@ void CFlowNavigatorDlg::OnLinkFlow()
 void CFlowNavigatorDlg::OnAdjust()
 {
 	// TODO: 在此添加命令处理程序代码
-	int adjImgSize = 2560*2048;
-	int xMin       = 0;
-	int xMax       = 2560;
-	int yMin       = 0;
-	int yMax       = 2048;
-	float L[2]     = {1,1};  
-	//这里以后加个if(图片数据类.图片数据==NULL) return；
-	for (int i = 0; i < MAX_CAMERAS; i++)
-	{
-		relateArr[i] = (unsigned char *)malloc(adjImgSize*sizeof(unsigned char));
 
-		adjustImage_C[i] = new AdjustImage(2560*2048,relateArr[i]);
-		adjustImage_C[i]->setAdjustImageSize(adjImgSize);
-		adjustImage_C[i]->setSingleRange(xMin, xMax, yMin, yMax);
-		adjustImage_C[i]->setL(L);
+	ShowCheckCamBt(this, Check_ID, FALSE);
+
+	char currentPath[MAX_PATH] = {0};
+	wcstombs(currentPath, m_CurrentProPath, m_CurrentProPath.GetLength());
+
+	FILE* fp;
+	char path[MAX_PATH]     = {0};	
+	float m_xMin_s;
+	float m_xMax_s;
+	float m_yMin_s;
+	float m_yMax_s;
+	float Lx;
+	float Ly;
+	// 左分割线
+	float m_leftSplit;
+	// 右分割线
+	float m_RightSplit;
+
+	for (int i = 0; i < m_CameraCount; i++)
+	{
+		sprintf(path, "%s\\配置文件\\Position_Cam%d.txt", currentPath, i);
+		fp = fopen(path, "r");
+
+		fscanf(fp, "%f %f %f %f %f %f %f %f ", &m_xMin_s, &m_xMax_s, &m_yMin_s,
+			&m_yMax_s, &Lx, &Ly, &m_leftSplit, &m_RightSplit);
+
+		adjustImage_C[i]->setSingleRange(m_xMin_s, m_xMax_s, m_yMin_s, m_yMax_s);
+		adjustImage_C[i]->setL(Lx, Ly);
+		adjustImage_C[i]->setLeftSplitLine(m_leftSplit);
+		adjustImage_C[i]->setSplitLine(m_RightSplit);
+		adjustImage_C[i]->setAdjustImageSize(); // 这句要在setSingleRange()之后调用
+		imgClb->UpdateRelatedArraySize(i);
+
+		fclose(fp);
+
+		imgClb->Load_RelatedArray_ToMemory(currentPath, i);
+
+		adjustImage_C[i]->setRelatedArray_k(imgClb->getRelatedArray(i));
 	}
-	adjustImage_C[0]->setSingleRange(0, 2560, 1000, 3048);
-	adjustImage_C[1]->setSingleRange(2060, 4620, 0, 2048);
-	adjustImage_C[0]->setLeftSplitLine(0);
-	adjustImage_C[0]->setSplitLine(2260);
-	adjustImage_C[1]->setLeftSplitLine(2260);
-	adjustImage_C[1]->setSplitLine(4620);
 
 	mAdjust = true;
 	
+	Invalidate(TRUE);
 	for (int j = 0; j < MAX_CAMERAS; j++)
 	{
 		m_pAdjustCls->adjustImage_C[j] = adjustImage_C[j];
 	}
-	SV_AdjustArg = new ShowView(this);
+	SV_AdjustArg = new ShowView(this, hinst);
 	m_pAdjustCls->showView = SV_AdjustArg;//
 	m_pAdjustCls->pWnd = this;
 
@@ -2713,15 +3034,18 @@ void CFlowNavigatorDlg::OnLink()
 	mLink = TRUE;
 }
 
-
-
 void CFlowNavigatorDlg::OnTest()
 {
 	// TODO: 在此添加命令处理程序代码
-	mLink = FALSE;
-	mAdjust = FALSE;
-	b_isContinuous = FALSE;
+	ShowCheckCamBt(this, Check_ID, TRUE);
+	checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, TRUE);
+	mLink           = FALSE;
+	mAdjust         = FALSE;
+	b_isContinuous  = FALSE;
 	b_isSingleFrame = FALSE;
+
+	solveFlow       = -1;    // 否则停止流场计算时，鼠标move时仍在获取流速值
+	//Invalidate(TRUE);
 }
 void CFlowNavigatorDlg::OnOpenproj()
 {
@@ -2795,7 +3119,7 @@ void CFlowNavigatorDlg::OnStartstream()
 	On8col1line();
 	CMenu * pMenu = GetMenu();
 	pMenu->EnableMenuItem(ID_StartStream,TRUE);
-	EnableCheckCamBt(this, Check_ID, SW_SHOW);
+	ShowCheckCamBt(this, Check_ID, SW_SHOW);
 }
 
 void CFlowNavigatorDlg::OnCloseStream()
@@ -2809,12 +3133,33 @@ void CFlowNavigatorDlg::OnCloseStream()
 	On8col1line();
 	CMenu* pMenu =GetMenu();
 	pMenu->EnableMenuItem(ID_StartStream,FALSE);
-	EnableCheckCamBt(this,Check_ID,SW_HIDE);
+	ShowCheckCamBt(this,Check_ID,SW_HIDE);
 	for (int i = 0; i < MAX_CAMERAS; i++)
 	{
 		RecvFrame[i] = 0;
 	}
 	Invalidate(TRUE);
+	DoubleClk = DOUBLECLK_IN;
+	CamSign = -1; // 让放大后的图像，执行DOUBLECLK_IN时再DOUBLECLK_OUT时，恢复显示_BUG_20160518
+
+	for (int i = 0; i < MAX_CAMERAS; i++)
+	{
+		Count[i]  = 0;
+		Count_[i] = 0;
+	}
+
+	WPARAM wParam;
+	LPARAM lParam;
+	int system_state = -1;
+	int content      = -1;
+	lParam           = (LPARAM)content;
+
+	for (int i = COLLECTION_NOT_START; i < CAM_IS_CLOSED+1; i++)
+	{
+		system_state = i;
+		wParam       = (WPARAM)system_state;
+		SendMessage(WM_MY_MESSAGE_INIT, wParam, lParam);
+	}
 }
 
 BOOL CFlowNavigatorDlg::getLBDownState(CPoint point)
@@ -2841,8 +3186,45 @@ void CFlowNavigatorDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 		return;
 	}
-	if(solveFlow != -1)
+
+	if(startClb == 1)
 	{
+		int ClbNum = imgClb->getDlbNum();
+		CalibrationPoint* ClbPoint = imgClb->getCBPoint();
+
+
+		int CurrentCamSign = imgClb->getCurrentCamSign();
+
+		if(What_NumOfClb < ClbNum)
+		{
+			ClbPoint[What_NumOfClb].x_i = point.x;
+			ClbPoint[What_NumOfClb].y_i = point.y;
+			What_NumOfClb++;
+		}
+
+		if(What_NumOfClb == ClbNum)
+		{
+			imgClb->GenerateRelated_(checkShow, CurrentCamSign);
+			imgClb->GenerateRelatedArray_(adjustImage_C[CurrentCamSign], checkShow, CurrentCamSign);
+
+			relateArr[CurrentCamSign] = imgClb->getRelatedArray(CurrentCamSign);
+
+			char szStr[256] = {0};
+/*
+			CString tempPath;
+			tempPath.Format(_T("%s\\配置文件"), m_CurrentProPath);
+			wcstombs(szStr, tempPath, tempPath.GetLength());//Unicode转换为ASCII
+*/
+			
+			wcstombs(szStr, m_CurrentProPath, m_CurrentProPath.GetLength());//Unicode转换为ASCII
+			const char * p = szStr;
+			imgClb->Save_RelatedArray_ToDisk(p, CurrentCamSign);
+
+			CString tips;
+			tips.Format(_T("相机%d标定完成!"), CurrentCamSign);
+			AfxMessageBox(tips, MB_ICONINFORMATION);
+			What_NumOfClb++;
+		}
 	}
 
 	getLBDownState(point);
@@ -2896,6 +3278,11 @@ void CFlowNavigatorDlg::OnLButtonUp(UINT nFlags, CPoint point)
 void CFlowNavigatorDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if(startClb == 1)
+	{
+		return;
+	}
+
 	if(solveFlow != -1 && mAdjust==TRUE)
 	{
 		st_FlowRate flowRate = {0};
@@ -2925,7 +3312,7 @@ void CFlowNavigatorDlg::OnMouseMove(UINT nFlags, CPoint point)
 			oldX = newX; 
 			oldY = newY; 
 
-			WCHAR coords[100]; 
+			WCHAR coords[256]; 
 			swprintf_s(coords, ARRAYSIZE(coords), _T("u=%f, v=%f, uv=%f"), flowRate.u, flowRate.v, flowRate.uv); 
 
 			g_toolItem.lpszText = coords; 
@@ -2954,6 +3341,13 @@ void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 
 	CDialog::OnLButtonDblClk(nFlags, point);
+
+	//禁止图像拼接时双击操作
+	if(mAdjust)
+	{
+		return;
+	}
+
 	TRACE("left bt double clk!\n");
 
 	//能改变DoubleClk == DOUBLECLK_OUT 的只有 后面的if
@@ -2980,7 +3374,7 @@ void CFlowNavigatorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 			DoubleClk = DOUBLECLK_OUT;
 			//DestroyCheckCamBt(checkBt, Check_ID);
 			checkShow->setDoubleClk(TRUE);
-			EnableCheckCamBt(this, Check_ID, SW_HIDE);
+			ShowCheckCamBt(this, Check_ID, SW_HIDE);
 		}
 // 		else if (DoubleClk == DOUBLECLK_OUT)
 // 		{
@@ -3022,6 +3416,7 @@ void CFlowNavigatorDlg::OnReboot()
 {
 	// TODO: 在此添加命令处理程序代码
 	OnCloseCamera();
+	OnOpenCamera();
 }
 
 
@@ -3044,6 +3439,7 @@ void CFlowNavigatorDlg::OnImageCalibrate()
 		CLBdlg2->adjustImage[i] = adjustImage_C[i];
 	}
 	CLBdlg2->imgClb = imgClb;
+	CLBdlg2->CurrentPath = m_CurrentProPath;
 	CLBdlg2->Create(IDD_CLB_CHILD8, this);
 	CLBdlg2->ShowWindow(SW_SHOW);
 	CLBdlg2->UpdateWindow();
@@ -3058,4 +3454,97 @@ void CFlowNavigatorDlg::OnImageCalibrate2()
 	CLBdlg->Create(IDD_CLB_PARENT, this);
 	CLBdlg->ShowWindow(SW_SHOW);
 	CLBdlg->UpdateWindow();
+}
+
+LRESULT CFlowNavigatorDlg::OnMyMessegeInit(WPARAM wParam, LPARAM lParam)
+{
+	int system_state = (int)wParam;
+	int I            = 0;          // 打开进度
+	CString str_state;
+	
+	switch(system_state)
+	{
+	case SYSTEM_WILL_OPEN:
+		m_statusBar.SetPaneText(INDEX_INDICATOR_INIT, _T("系统状态: 正在打开"), TRUE);
+
+		break;
+	case SYSTEM_OPEN_ING:
+		I = openCamCount * 100 / m_CameraCount;
+		str_state.Format(_T("系统状态:已完成%d%%"), I);
+		m_statusBar.SetPaneText(INDEX_INDICATOR_INIT, str_state, TRUE);
+
+		break;
+	case SYSTEM_IS_OPEN:
+		m_statusBar.SetPaneText(INDEX_INDICATOR_INIT, _T("系统状态: 已就绪"), TRUE);
+
+		break;
+	case SYSTEM_NOT_OPEN:
+		m_statusBar.SetPaneText(INDEX_INDICATOR_INIT, _T("系统状态：     已关闭"), TRUE);
+
+		break;
+	case COLLECTION_NOT_START:
+		m_statusBar.SetPaneText(INDEX_INDICATOR_SAVE_IMG, _T("采集状态：     未开始"), TRUE);
+
+		break;
+	case CAM_IS_CLOSED:
+		m_statusBar.SetPaneText(INDEX_INDICATOR_CURRENT_CAMSIGN, _T("已打开相机编号: "), TRUE);
+
+		break;
+	default:
+		;
+	}
+	return 0;
+}
+
+void CFlowNavigatorDlg::OnCheckBtClick(UINT uID)
+{
+	int b_Check = ((CButton*)GetDlgItem(uID))->GetCheck();
+
+	//获取当前选中的数量，位置等
+	checkShow->setCheckCamSign(checkBt, MAX_CAMERAS);
+	checkShow->getCheckNum(checkBt, MAX_CAMERAS, TRUE);
+
+	int* checkCamSign = checkShow->getCheckCamSign();
+	int num = checkShow->getNum();
+
+	CString text;
+	CString first;
+	for(int i = 0; i < num; i++)
+	{
+		text.Format(_T("%s,cam%d"), first,  checkCamSign[i]);
+		first = text;
+	}
+
+	text.Format(_T("已打开相机编号: %s"), first);
+	m_statusBar.SetPaneText(INDEX_INDICATOR_CURRENT_CAMSIGN, text, TRUE);
+
+	switch(uID)
+	{
+	case IDC_CheckBT1:
+
+		break;
+	case IDC_CheckBT2:
+
+		break;
+	case IDC_CheckBT3:
+
+		break;
+	case IDC_CheckBT4:
+
+		break;
+	case IDC_CheckBT5:
+
+		break;
+	case IDC_CheckBT6:
+
+		break;
+	case IDC_CheckBT7:
+
+		break;
+	case IDC_CheckBT8:
+
+		break;
+	default:
+		;
+	}
 }

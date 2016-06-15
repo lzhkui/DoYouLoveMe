@@ -7,6 +7,9 @@
 
 // ImageCalibrationDlg2 对话框
 
+extern int startClb;        // 1:开始标定
+extern int What_NumOfClb;   //标记当前指定的是第几个标定点
+
 class ImageCalibrationDlg2 : public CDialog
 {
 	DECLARE_DYNAMIC(ImageCalibrationDlg2)
@@ -21,7 +24,7 @@ public:
 private:
 	st_Range* m_stRange[MAX_CAMERAS];
 	float*    L[2];                         //L[0]: x方向分辨率   L[1]: y方向分辨率
-	BOOL      CamSign[MAX_CAMERAS];
+	BOOL      CamSign[MAX_CAMERAS];         //TRUE: 相机已标定过
 
 public:
 	//单个相机的原始实际范围
@@ -48,7 +51,11 @@ public:
 	float m_yMax_s;
 	float Lx;
 	float Ly;
-	float m_CamSign;
+	// 左分割线
+	float m_leftSplit;
+	// 右分割线
+	float m_RightSplit;
+	int   m_CamSign;
 	float xClb1;
 	float yClb1;
 	float xClb2;
@@ -65,9 +72,15 @@ public:
 	float yClb7;
 	float xClb8;
 	float yClb8;
+	CEdit m_CamSignCtr;  //相机编号
+	int m_ClbNum;        //输入的标定点个数
+
+	CString CurrentPath;
+
 	afx_msg void OnBnClickedBtBeging();
+	afx_msg void OnBnClickedBtReClb();
+
 	virtual void OnCancel();
 	virtual void PostNcDestroy();
-	CEdit m_CamSignCtr;
-	int m_ClbNum;
+	afx_msg void OnBnClickedLoadClbSetting();
 };

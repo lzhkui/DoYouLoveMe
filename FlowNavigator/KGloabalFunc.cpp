@@ -51,6 +51,21 @@ unsigned char* Matrix_T(unsigned char* pBuff, int nRow, int nCol)
 	return copy_pBuff;
 }
 
+float* Matrix_T(float* pBuff, int nRow, int nCol)
+{
+	float* copy_pBuff = (float*)malloc(nRow*nCol*sizeof(float));
+
+	for(int i =0; i < nCol; i++)
+	{
+		for (int j =0; j < nRow; j++)
+		{
+			*(copy_pBuff + i*nRow +j) = *(pBuff + j*nCol + i);
+		}
+	}
+
+	return copy_pBuff;
+
+}
 
 //Ã°ÅÝÅÅÐò
 void BubbleSortArray(int *RangeArray, unsigned int ArraySize)
@@ -87,4 +102,65 @@ void BubbleSortArray(int *RangeArray, unsigned int ArraySize)
 			}
 		}
 	}
+}
+
+int WriteMatrixToDisk(char* path, int nRow, int nCol, unsigned char*buff)
+{
+	FILE* fp;
+	fp = fopen(path, "w");
+	if(fp == NULL)
+	{
+		return -1;
+	}
+
+	for(int i = 0; i < nRow; i++)
+	{
+		for (int j = 0; j < nCol; j++)
+		{
+			fprintf(fp, "%d ", *(buff+i*nCol+nRow));
+		}
+		fprintf(fp, "\n");
+	}
+
+	fclose(fp);
+
+	return 1;
+}
+int WriteMatrixToDisk(char* path, int nRow, int nCol, unsigned int*buff)
+{
+	FILE* fp;
+	fp = fopen(path, "w");
+	if(fp == NULL)
+	{
+		return -1;
+	}
+
+	for(int i = 0; i < nRow; i++)
+	{
+		for (int j = 0; j < nCol; j++)
+		{
+			fprintf(fp, "%d ", *(buff+i*nCol+nRow));
+		}
+		fprintf(fp, "\n");
+	}
+
+	fclose(fp);
+
+	return 1;
+}
+
+int FindMax_Int(int *nArray, int arraySize)
+{
+	if((nArray == NULL) && (arraySize <1))
+	{
+		return -1;
+	}
+
+	int max = nArray[0];
+	for (int i = 1; i < arraySize; i++)
+	{
+		max = (max > nArray[i]) ? max : nArray[i];
+	}
+
+	return max;
 }

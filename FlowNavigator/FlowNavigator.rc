@@ -700,6 +700,77 @@ CAPTION "标定参数设置"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "相机拍摄物理范围",IDC_STATIC,18,18,354,72
+    LTEXT           "x范围",IDC_STATIC,31,41,21,14
+    EDITTEXT        IDC_EDIT1,66,38,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,106,38,14,8
+    EDITTEXT        IDC_EDIT2,120,38,40,14,ES_AUTOHSCROLL
+    LTEXT           "y范围",IDC_STATIC,32,62,21,8
+    EDITTEXT        IDC_EDIT4,66,58,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT5,119,58,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,106,58,14,8
+    LTEXT           "x分辨率",IDC_STATIC,178,40,29,8
+    LTEXT           "y分辨率",IDC_STATIC,178,60,29,8
+    EDITTEXT        IDC_EDIT3,215,36,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT6,215,56,40,14,ES_AUTOHSCROLL
+    LTEXT           "标定点1",IDC_STATIC,76,140,29,8
+    LTEXT           "标定点2",IDC_STATIC,76,168,29,8
+    LTEXT           "标定点3",IDC_STATIC,75,197,29,8
+    LTEXT           "标定点4",IDC_STATIC,75,230,29,8
+    LTEXT           "标定点5",IDC_STATIC,223,141,29,8
+    LTEXT           "标定点6",IDC_STATIC,223,169,29,8
+    LTEXT           "标定点7",IDC_STATIC,222,197,29,8
+    LTEXT           "标定点8",IDC_STATIC,222,231,29,8
+    EDITTEXT        IDC_EDIT7,108,138,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,148,138,14,8
+    EDITTEXT        IDC_EDIT8,162,138,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT9,108,165,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,148,165,14,8
+    EDITTEXT        IDC_EDIT10,162,165,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT11,108,195,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,148,195,14,8
+    EDITTEXT        IDC_EDIT12,162,195,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT13,108,227,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,148,227,14,8
+    EDITTEXT        IDC_EDIT14,162,227,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT15,258,138,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,298,138,14,8
+    EDITTEXT        IDC_EDIT16,312,138,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT17,258,166,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,298,166,14,8
+    EDITTEXT        IDC_EDIT18,312,166,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT19,258,194,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,298,194,14,8
+    EDITTEXT        IDC_EDIT20,312,194,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT21,258,227,40,14,ES_AUTOHSCROLL
+    LTEXT           "——",IDC_STATIC,298,227,14,8
+    EDITTEXT        IDC_EDIT22,312,227,40,14,ES_AUTOHSCROLL
+    GROUPBOX        "标定点物理坐标",IDC_STATIC,18,107,354,165
+    LTEXT           "x",IDC_STATIC,124,120,8,8
+    LTEXT           "y",IDC_STATIC,175,120,8,8
+    LTEXT           "x",IDC_STATIC,271,120,8,8
+    LTEXT           "y",IDC_STATIC,324,120,8,8
+    LTEXT           "min",IDC_STATIC,81,24,12,8
+    LTEXT           "max",IDC_STATIC,133,24,14,8
+    LTEXT           "Tips: 1、标定点至少需要4组   2、请按照上述顺序依次输入，完成后按照此顺序依次在图像上标定",IDC_STATIC,30,258,340,8
+    PUSHBUTTON      "开始标定",IDC_BT_BEGING,155,298,50,14
+    EDITTEXT        IDC_EDIT23,355,6,40,14,ES_AUTOHSCROLL
+    LTEXT           "相机编号:",IDC_STATIC,313,8,36,8
+    LTEXT           "标定点个数",IDC_STATIC,72,285,41,8
+    EDITTEXT        IDC_EDIT24,116,283,40,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "重新标定",IDC_BT_RECLB,224,298,50,14
+    EDITTEXT        IDC_EDIT25,323,37,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT26,324,55,40,14,ES_AUTOHSCROLL
+    LTEXT           "左分割线",IDC_STATIC,277,40,33,8
+    LTEXT           "右分割线",IDC_STATIC,277,59,33,8
+    PUSHBUTTON      "加载参数设置",IDC_LOAD_CLBSETTING,249,5,57,14
+END
+
+IDD_CLB_CHILD8_COPY DIALOGEX 0, 0, 406, 337
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "标定参数设置"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "相机拍摄物理范围",IDC_STATIC,18,18,354,72
     LTEXT           "x范围",IDC_STATIC,74,41,21,14
     EDITTEXT        IDC_EDIT1,109,38,40,14,ES_AUTOHSCROLL
     LTEXT           "——",IDC_STATIC,149,38,14,8
@@ -752,11 +823,12 @@ BEGIN
     LTEXT           "min",IDC_STATIC,124,24,12,8
     LTEXT           "max",IDC_STATIC,176,24,14,8
     LTEXT           "Tips: 1、标定点至少需要4组   2、请按照上述顺序依次输入，完成后按照此顺序依次在图像上标定",IDC_STATIC,30,258,340,8
-    PUSHBUTTON      "开始标定",IDC_BT_BEGING,178,298,50,14
+    PUSHBUTTON      "开始标定",IDC_BT_BEGING,155,298,50,14
     EDITTEXT        IDC_EDIT23,355,6,40,14,ES_AUTOHSCROLL
     LTEXT           "相机编号:",IDC_STATIC,313,8,36,8
     LTEXT           "标定点个数",IDC_STATIC,72,285,41,8
     EDITTEXT        IDC_EDIT24,116,283,40,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "重新标定",IDC_BT_RECLB,224,298,50,14
 END
 
 
@@ -784,12 +856,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Hawksoft"
             VALUE "FileDescription", "大范围表面流场"
-            VALUE "FileVersion", "1.0.0.1"
+            VALUE "FileVersion", "2.1.1"
             VALUE "InternalName", "FlowNavigator.exe"
             VALUE "LegalCopyright", "Hawksoft保留所有权利。"
             VALUE "OriginalFilename", "FlowNavigator.exe"
             VALUE "ProductName", "FlowNavigator"
-            VALUE "ProductVersion", "1.0.0.1"
+            VALUE "ProductVersion", "2.1.1"
         END
     END
     BLOCK "VarFileInfo"
@@ -880,7 +952,6 @@ BEGIN
 
     IDD_DIALOG_CALIBRATION, DIALOG
     BEGIN
-        MOCKUP, 0, 100, 0, 0, "..\..\..\..\victoria.jpg"
         LEFTMARGIN, 7
         RIGHTMARGIN, 689
         TOPMARGIN, 7
@@ -966,6 +1037,14 @@ BEGIN
         TOPMARGIN, 6
         BOTTOMMARGIN, 330
     END
+
+    "IDD_CLB_CHILD8_COPY", DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 399
+        TOPMARGIN, 6
+        BOTTOMMARGIN, 330
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -1012,7 +1091,7 @@ BEGIN
         MENUITEM "图像拼接",                        ID_Adjust
         MENUITEM "流场计算",                        ID_LinkFlow
         MENUITEM SEPARATOR
-        MENUITEM "test",                        ID_Test
+        MENUITEM "停止",                          ID_Test
     END
     MENUITEM "帮助",                          ID_32803
 END
@@ -1034,6 +1113,14 @@ BEGIN
     IDC_CheckBT6            "Cam5"
     IDC_CheckBT7            "Cam6"
     IDC_CheckBT8            "Cam7"
+    ID_INDICATOR_INIT       "系统状态：      未打开"
+    ID_INDICATOR_CURRENT_CAMSIGN "已打开相机编号: "
+END
+
+STRINGTABLE
+BEGIN
+    ID_INDICATOR_SAVE_IMG   "采集状态：      未开始"
+    ID_INDICATOR_TIME       "00:00:00"
 END
 
 #endif    // 中文(简体，中国) resources

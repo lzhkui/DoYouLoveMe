@@ -33,8 +33,8 @@ void CheckToShow::initial()
 		showStartAndSize[i] = tempShow[i];
 	}
 
-	Xreal = 2560;
-	Yreal = 2048;
+	Xreal = 2048;
+	Yreal = 2560;
 }
 
 CheckToShow::~CheckToShow(void)
@@ -124,9 +124,9 @@ int CheckToShow::getHeight(float Xreal, float Yreal)
 int CheckToShow::getHeight(CRect& rect, float Xreal, float Yreal)
 {
 	//float Weight = RAW_HEIGHT/ RAW_WIDTH;
-	int x = Xreal;
-	int y = Yreal;
-	int height = getWidth(rect) * x / y;
+// 	int x = Xreal;
+// 	int y = Yreal;
+	int height = getWidth(rect) * Xreal / Yreal;
 	return height;
 }
 

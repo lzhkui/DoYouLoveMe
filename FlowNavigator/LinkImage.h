@@ -108,6 +108,8 @@ public:
 	void GenerateSameHeigth(ShowView* showView, AdjustImage* adjustImage, int sign);
 	void StartLink(ShowView* showView, int* checkSign, int checkSignNum);
 
+	unsigned char* getImageHasSameHeight(int sign);
+
 private:
 	unsigned char* ImageHasSameHeight[MAX_CAMERAS];
 	AdjustImage* adjustImage_C[MAX_CAMERAS];

@@ -71,11 +71,30 @@ void CreateMatrixByRow(float* px, float* py, int xSmall, int xLarge, int ySmall,
 }
 
 ShowView::ShowView(CWnd *pWnd)
-:Xstart(0),Ystart(0),Xreal(2560),Yreal(2048),
+:Xstart(0),Ystart(0),Xreal(2048),Yreal(2560),
 showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE),
 base(BASE_ONWIDTH),I(1)
 {
 	initBmpInfo();
+	initial();
+
+	this->pWnd = pWnd;
+}
+
+ShowView::ShowView(CWnd* pWnd, HINSTANCE hinst)
+:Xstart(0),Ystart(0),Xreal(2048),Yreal(2560),
+showNum(8), singleWidth(0), height(0), DbClk(FALSE),nStretchMode(HALFTONE),
+base(BASE_ONWIDTH),I(1)
+{
+	initBmpInfo();
+	initial();
+	this->pWnd = pWnd;
+
+	this->hinst = hinst;
+}
+
+void ShowView::initial()
+{	
 	bmpInfo = (BITMAPINFO*)new char[256*sizeof(RGBQUAD)+ sizeof(BITMAPINFOHEADER)];
 	memset(bmpInfo,0,sizeof(BITMAPINFO)); 
 	bmpInfo->bmiHeader.biPlanes = 1;    
@@ -99,8 +118,6 @@ base(BASE_ONWIDTH),I(1)
 		bmpInfo->bmiColors[j].rgbReserved = 0;
 	}
 
-	this->pWnd = pWnd;
-
 	for(int i = 0; i < MAX_CAMERAS; i++)
 	{
 		px[i]  = NULL;
@@ -121,9 +138,6 @@ base(BASE_ONWIDTH),I(1)
 	AlgorithmSign = 0;
 	number++;
 	TRACE(_T("++ShowView has %d \n"), number);
-
-	hinst = LoadLibraryEx(_T("hs_piv64.dll") , NULL, LOAD_WITH_ALTERED_SEARCH_PATH);//第一个参数后缀可以不加...
-	int result = GetLastError();
 
 	memset(&st_base, 0, sizeof(st_base));
 }
@@ -150,7 +164,6 @@ ShowView::~ShowView(void)
 		if(pc[i]  != NULL){free(pc[i]);  pc[i]  = NULL;}
 
 	}
-	FreeLibrary(hinst);
 }
 
 void ShowView::initBmpInfo()
@@ -224,7 +237,7 @@ void ShowView::setStartPosition(AdjustImage* adjustImage)
 	st_StartPosition startPosition = adjustImage->getStartPosition(st_base);
 	int diff = adjustImage->getLeftSplitLinePixel() * st_base.baseWidth / adjustImage->getXClientRange();
 	this->Xstart = startPosition.xStart + diff;
-	this->Ystart = startPosition.yStart;
+	this->Ystart = 0/*startPosition.yStart*/; //显示位置_20160605
 }
 void ShowView::setStartPosition(CheckToShow* checkShow, int sign)
 {
@@ -270,10 +283,10 @@ void ShowView::LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustIm
 	int yRange = adjustImage->getYClientRange();  //这个范围是实际校正后的范围
 
 	//设置bmpinfo
-	setWidth(xRange);
-	setHeight(yRange);
+	setWidth(xRange, sign);
+	setHeight(yRange, sign);
 
-	int nWidth  = (adjustImage->getSplitLinePixel() - adjustImage->getLeftSplitLinePixel()) * st_base.baseWidth / adjustImage->getXClientRange();
+	int nWidth  = (adjustImage->getSplitLinePixel() - adjustImage->getLeftSplitLinePixel()) * (float)st_base.baseWidth / adjustImage->getXClientRange() + 0.5;
 	int nHeight = st_base.baseHeight;
 
 	int xSrc    = adjustImage->getLeftSplitLinePixel();
@@ -525,6 +538,16 @@ void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuff
 	HSPIV_Cross_Correlation_MP_Proc HSPIV_Cross_Correlation_MP  = (HSPIV_Cross_Correlation_MP_Proc)GetProcAddress(hinst, "HSPIV_Cross_Correlation_MP");
 	//HSPIV_MQD_Proc            HSPIV_MQD            = (HSPIV_MQD_Proc)GetProcAddress(hinst,"HSPIV_MQD");
 
+	int result = GetLastError();
+
+	if(result != 0)
+	{
+		CString txt;
+		txt.Format(_T("load func GetLastError=%d"), result);
+		AfxMessageBox(txt);
+	}
+
+
 	this->yLarge   = nBuffRow;
 	this->ySmall   = 0;
 	this->xLarge   = nBuffCol;
@@ -554,7 +577,7 @@ void ShowView::GenerateVectorNum(unsigned char* pBuffFirst, unsigned char* pBuff
 	Unload_PIV_Images();
 	/*FreeLibrary(hinst);*/
 	FindMaxArrowLen(sign);
-#ifdef MYTEST
+#ifdef MYTEST_MAX_U_V
 	FindMaxUV(sign);
 #endif
 
@@ -668,7 +691,7 @@ void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign, int 
 	{
 		startX++;
 	}
-	startX--;
+	//startX--;
 
 	int endX = 0;
 	while(endX * step < adjustImage->getSplitLinePixel())
@@ -701,11 +724,11 @@ void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign, int 
 		for(int j = startX; j < endX; j++)
 		{
 			startPoint.x = (*(px[sign]+i*sizeY + j) * st_base.baseWidth  / adjustImage->getXClientRange() +
-				start.xStart);
+				start.xStart + 0.5);
 			startPoint.y = (*(py[sign]+i*sizeY + j) * st_base.baseHeight / adjustImage->getYClientRange() + 
-				start.yStart); 
-			endPoint.x   = (startPoint.x + *(pu[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign]);
-			endPoint.y   = (startPoint.y - *(pv[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign]);
+				start.yStart + 0.5); 
+			endPoint.x   = (startPoint.x + *(pu[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign] + 0.5);
+			endPoint.y   = (startPoint.y - *(pv[sign] + i*sizeY + j) * ARROW_LEN / MaxArrowLen[sign] + 0.5);
 			DrawVectorArrow(startPoint, endPoint, this->pWnd);
 		}
 	}
@@ -795,11 +818,42 @@ st_Base ShowView::getCurrentLen(CRect rect)
 
 st_FlowRate ShowView::getFlowRate(CPoint point, int* CheckCamSign, int Num, AdjustImage* adjustImage[])
 {
-	st_FlowRate flowRate = {0};
-	int sign = 0;  //所选中的编号
-	st_Range range = adjustImage[CheckCamSign[sign]]->getSingleRange();
-	st_ClientRange clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                      //(1)
-	float splitLine = (adjustImage[CheckCamSign[sign]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);  //(1)
+	st_FlowRate flowRate       = {0};
+
+	if(point.x < st_base.diffWidth || point.x > (st_base.baseWidth + st_base.diffWidth) ||
+		point.y < st_base.diffHeight || point.y > (st_base.diffHeight + st_base.baseHeight))
+	{
+		flowRate.u = 0;
+		flowRate.v = 0;
+		flowRate.uv = 0;
+
+		return flowRate;
+	}
+
+	st_Range range             = {0};
+	st_ClientRange clientRange = {0};
+	float splitLine            =  0;
+	int sign                   =  0;  //所选中的编号
+
+
+	for(int i = 0; i < Num; i++)
+	{
+		//clientRange其实都一样
+		clientRange = adjustImage[CheckCamSign[i]]->getClientRange();                                                                                 //(2)
+
+		splitLine = (adjustImage[CheckCamSign[i]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);    //(2)
+
+		if((point.x - st_base.diffWidth) <= splitLine)
+		{
+			sign = i;
+			break;
+		}
+	}
+	range = adjustImage[CheckCamSign[sign]]->getSingleRange();
+/*
+	range = adjustImage[CheckCamSign[sign]]->getSingleRange();
+	clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                      //(1)
+	splitLine = (adjustImage[CheckCamSign[sign]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);  //(1)
 
 	for(int i = 0; i < Num; i++)
 	{
@@ -818,18 +872,27 @@ st_FlowRate ShowView::getFlowRate(CPoint point, int* CheckCamSign, int Num, Adju
 
 	clientRange = adjustImage[CheckCamSign[sign]]->getClientRange();                                                                                     //(3)
 	splitLine = (adjustImage[CheckCamSign[sign]]->getSplitLine() - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);        //(3)
+*/
+	float pointX       = 0;
+	int pointXByAdjust = 0;
+	int pointYByAdjust = 0;
+	st_StartPosition startPosition = adjustImage[CheckCamSign[sign]]->getStartPosition(st_base);
+// 	float leftSplit = adjustImage[CheckCamSign[sign]]->getLeftSplitLine();
+// 
+// 	pointX = point.x - startPosition.xStart - (leftSplit - range.xMin) * st_base.baseWidth/ 
+// 		(clientRange.xMax - clientRange.xMin);
 
-	float pointX = point.x - st_base.diffWidth - (range.xMin - clientRange.xMin) * st_base.baseWidth / (clientRange.xMax - clientRange.xMin);
-	int pointXByAdjust = (int)(pointX * adjustImage[sign]->getXRange() / splitLine);
-	int pointYByAdjust = point.y - st_base.diffHeight;
-
+	pointX = point.x - startPosition.xStart;
+	pointXByAdjust = (int)(pointX * adjustImage[CheckCamSign[sign]]->getXClientRange() / st_base.baseWidth + 0.5);
+	pointYByAdjust = (int)((point.y - startPosition.yStart) * 
+		adjustImage[CheckCamSign[sign]]->getYClientRange() / st_base.baseHeight + 0.5);
 	int startX = 0;
 	while(startX * step <= pointXByAdjust)
 	{
 		startX++;
 	}
 	startX--;
-
+/*
 	//不在有效区域内
 	st_StartPosition startPosition = adjustImage[CheckCamSign[sign]]->getStartPosition(st_base);
 	int nHeight = (range.yMax - range.yMin) * st_base.baseHeight / (clientRange.yMax - clientRange.yMin);
@@ -841,9 +904,9 @@ st_FlowRate ShowView::getFlowRate(CPoint point, int* CheckCamSign, int Num, Adju
 
 		return flowRate;
 	}
-
+*/
 	int startY = 0;
-	while(startY * step <= (point.y - startPosition.yStart))
+	while(startY * step <= pointYByAdjust)
 	{
 		startY++;
 	}
