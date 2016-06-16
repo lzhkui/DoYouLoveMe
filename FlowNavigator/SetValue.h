@@ -3,6 +3,7 @@
 #include <Jai_Factory.h>
 #include "afxcmn.h"  //¿Ø¼þCSliderCtrl
 #include "BuildDir.h"
+#include "afxwin.h"
 using namespace BuildDir;
 
 // SetValue ¶Ô»°¿ò
@@ -52,6 +53,11 @@ protected:
 	virtual void OnOK();
 	virtual void OnCancel();
 
+protected:
+	BOOL b_splitCamCheck[MAX_CAMERAS + 1];
+	int  checkNum;
+	int  checkCamSign[MAX_CAMERAS];
+	CMenu menu;
 public:
 	CSliderCtrl mExpSliderCtrl;
 	int m_MinExposure;
@@ -69,6 +75,7 @@ public:
 	CSliderCtrl mFrameSliderCtrl;
 
     CString m_CurrentProPath;
+	CSplitButton m_splitBt;
 
 	void Start();
 	void SetRangeMM(void);
@@ -77,6 +84,18 @@ public:
 	int CSetValue::SetValueMM(CAM_HANDLE hCam[], int8_t* sNodeName,
 		CSliderCtrl& mSlider, int* Min, int* Max);
 	void setInitValueMM(CSliderCtrl& mSlider, int& mMin, int& mMax,int Min, int Max);
+
 	afx_msg void OnBnClickedLoadlastsetup();
 	virtual BOOL OnInitDialog();
+	afx_msg void OnCamsetupAllUse();
+	afx_msg void OnCamsetupCam0();
+	afx_msg void OnCamsetupCam1();
+	afx_msg void OnCamsetupCam2();
+	afx_msg void OnCamsetupCam3();
+	afx_msg void OnCamsetupCam4();
+	afx_msg void OnCamsetupCam5();
+	afx_msg void OnCamsetupCam6();
+	afx_msg void OnCamsetupCam7();
+	afx_msg void OnInitMenu(CMenu* pMenu);
+	afx_msg void OnClose();
 };

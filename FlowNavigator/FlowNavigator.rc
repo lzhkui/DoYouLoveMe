@@ -101,7 +101,7 @@ CAPTION "相机参数设置"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_SLIDER1,"msctls_trackbar32",TBS_AUTOTICKS | TBS_BOTH | WS_TABSTOP,195,80,144,24,WS_EX_STATICEDGE
-    GROUPBOX        "参数设置",IDC_STATIC,30,16,454,237,WS_GROUP
+    GROUPBOX        "参数设置",IDC_STATIC,30,16,436,237,WS_GROUP
     LTEXT           "曝光时间:",IDC_STATIC,70,88,36,8
     EDITTEXT        IDC_CurExposure,107,86,47,14,ES_AUTOHSCROLL | ES_WANTRETURN
     CTEXT           "10",IDC_MinExposure,170,86,25,11,SS_CENTERIMAGE,WS_EX_STATICEDGE
@@ -122,6 +122,7 @@ BEGIN
     CTEXT           "20",IDC_MaxFrame,338,158,24,15,SS_CENTERIMAGE,WS_EX_STATICEDGE
     PUSHBUTTON      "保存参数配置",IDC_SAVESETUP,397,157,53,14
     PUSHBUTTON      "加载配置文件",IDC_LOADLASTSETUP,397,120,53,14
+    CONTROL         "设置模式",IDC_SPLIT_CAM_SETUP,"Button",BS_SPLITBUTTON | WS_TABSTOP,472,7,50,14
 END
 
 IDD_DIALOG2 DIALOGEX 0, 0, 290, 117
@@ -952,6 +953,7 @@ BEGIN
 
     IDD_DIALOG_CALIBRATION, DIALOG
     BEGIN
+        MOCKUP, 0, 100, 0, 0, "..\..\..\..\victoria.jpg"
         LEFTMARGIN, 7
         RIGHTMARGIN, 689
         TOPMARGIN, 7
@@ -1094,6 +1096,22 @@ BEGIN
         MENUITEM "停止",                          ID_Test
     END
     MENUITEM "帮助",                          ID_32803
+END
+
+IDR_MENU_CAM_SETUP MENU
+BEGIN
+    POPUP "CamSetup"
+    BEGIN
+        MENUITEM "全部应用",                        ID_CAMSETUP_ALLUSE, CHECKED
+        MENUITEM "cam0",                        ID_CAMSETUP_CAM0
+        MENUITEM "cam1",                        ID_CAMSETUP_CAM1
+        MENUITEM "cam2",                        ID_CAMSETUP_CAM2
+        MENUITEM "cam3",                        ID_CAMSETUP_CAM3
+        MENUITEM "cam4",                        ID_CAMSETUP_CAM4
+        MENUITEM "cam5",                        ID_CAMSETUP_CAM5
+        MENUITEM "cam6",                        ID_CAMSETUP_CAM6
+        MENUITEM "cam7",                        ID_CAMSETUP_CAM7
+    END
 END
 
 

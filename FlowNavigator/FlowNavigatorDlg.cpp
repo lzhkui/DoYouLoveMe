@@ -310,7 +310,6 @@ CFlowNavigatorDlg::CFlowNavigatorDlg(CWnd* pParent /*=NULL*/)
 		txt.Format(_T("load lib GetLastError=%d"), result);
 		AfxMessageBox(txt);
 	}
-
 }
 
 CFlowNavigatorDlg::~CFlowNavigatorDlg()
@@ -320,6 +319,7 @@ CFlowNavigatorDlg::~CFlowNavigatorDlg()
 	delete checkShow;
 	delete zoomImage;
 	delete imgClb;
+	delete setDlg;
 	if (m_pAdjustCls != NULL)
 	{
 		free(m_pAdjustCls);

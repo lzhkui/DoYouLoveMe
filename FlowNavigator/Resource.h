@@ -29,6 +29,7 @@
 #define IDD_DIALOG_CALIBRATION          138
 #define IDD_CLB_PARENT                  141
 #define IDD_CLB_CHILD0                  143
+#define IDR_MENU_CAM_SETUP              143
 #define IDD_CLB_CHILD1                  144
 #define IDD_CLB_CHILD2                  145
 #define IDD_CLB_CHILD3                  146
@@ -98,6 +99,7 @@
 #define DC_BT_RECLB                     1051
 #define IDC_BT_RECLB                    1051
 #define IDC_EDIT25                      1052
+#define IDC_SPLIT_CAM_SETUP             1052
 #define IDC_EDIT26                      1053
 #define ID_32771                        32771
 #define ID_32772                        32772
@@ -154,13 +156,23 @@
 #define ID_32823                        32823
 #define ID_ImageCalibrate2              32824
 
+#define ID_CAMSETUP_CAM0                32826
+#define ID_CAMSETUP_CAM1                32827
+#define ID_CAMSETUP_CAM2                32828
+#define ID_CAMSETUP_CAM3                32829
+#define ID_CAMSETUP_CAM4                32830
+#define ID_CAMSETUP_CAM5                32831
+#define ID_CAMSETUP_CAM6                32832
+#define ID_CAMSETUP_CAM7                32833
+#define ID_CAMSETUP_ALLUSE              32834
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        143
-#define _APS_NEXT_COMMAND_VALUE         32825
-#define _APS_NEXT_CONTROL_VALUE         1052
+#define _APS_NEXT_RESOURCE_VALUE        144
+#define _APS_NEXT_COMMAND_VALUE         32835
+#define _APS_NEXT_CONTROL_VALUE         1054
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

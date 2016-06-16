@@ -5,6 +5,8 @@
 #include "FlowNavigator.h"
 #include "SetValue.h"
 
+static int SplitBT_ClickAllUse = -1;
+
 // SetValue 对话框
 
 IMPLEMENT_DYNAMIC(CSetValue, CDialog)
@@ -21,18 +23,23 @@ CSetValue::CSetValue(CWnd* pParent /*=NULL*/, CString curProPath)
 	, m_CurFrame(0.0)
 	, m_MinFrame(0)
 	, m_MaxFrame(0)
+	,checkNum(0)
 {
 	for (int i=0; i< MAX_CAMERAS; i++)
 	{
-		m_hCam[i] = NULL;
+		m_hCam[i]          = NULL;
+		b_splitCamCheck[i] = FALSE;
+		checkCamSign[i]    = -1;
 	}
+
+	b_splitCamCheck[MAX_CAMERAS] = TRUE;
 	m_hExposureNode = NULL;
 	m_CurrentProPath = curProPath;
 }
 
 CSetValue::~CSetValue()
 {
-	OnBnClickedSaveSetup();
+	//OnBnClickedSaveSetup();
 }
 
 void CSetValue::DoDataExchange(CDataExchange* pDX)
@@ -51,6 +58,7 @@ void CSetValue::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_MaxFrame, m_MaxFrame);
 	DDX_Control(pDX, IDC_SLIDER2, mGainSliderCtrl);
 	DDX_Control(pDX, IDC_SLIDER3, mFrameSliderCtrl);
+	DDX_Control(pDX, IDC_SPLIT_CAM_SETUP, m_splitBt);
 }
 
 
@@ -62,6 +70,17 @@ BEGIN_MESSAGE_MAP(CSetValue, CDialog)
 	ON_WM_HSCROLL()
 	ON_BN_CLICKED(IDC_SAVESETUP, &CSetValue::OnBnClickedSaveSetup)
 	ON_BN_CLICKED(IDC_LOADLASTSETUP, &CSetValue::OnBnClickedLoadlastsetup)
+	ON_COMMAND(ID_CAMSETUP_ALLUSE, &CSetValue::OnCamsetupAllUse)
+	ON_COMMAND(ID_CAMSETUP_CAM0, &CSetValue::OnCamsetupCam0)
+	ON_COMMAND(ID_CAMSETUP_CAM1, &CSetValue::OnCamsetupCam1)
+	ON_COMMAND(ID_CAMSETUP_CAM2, &CSetValue::OnCamsetupCam2)
+	ON_COMMAND(ID_CAMSETUP_CAM3, &CSetValue::OnCamsetupCam3)
+	ON_COMMAND(ID_CAMSETUP_CAM4, &CSetValue::OnCamsetupCam4)
+	ON_COMMAND(ID_CAMSETUP_CAM5, &CSetValue::OnCamsetupCam5)
+	ON_COMMAND(ID_CAMSETUP_CAM6, &CSetValue::OnCamsetupCam6)
+	ON_COMMAND(ID_CAMSETUP_CAM7, &CSetValue::OnCamsetupCam7)
+	ON_WM_INITMENU()
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 
@@ -372,19 +391,28 @@ int CSetValue::SetValueInt_CWJ(CAM_HANDLE hCam[], int8_t* sNodeName, int64_t Val
 {
 	int retval;
 	NODE_HANDLE m_hNode;
-	for (int i = 0; i < m_CameraCount; i++)
+	if(b_splitCamCheck[8])
 	{
-		//retval = J_Camera_GetNodeByName(m_hCam[i],sNodeName,&m_hNode);
-		retval = J_Camera_SetValueInt64(m_hCam[i],sNodeName,Value);
-
-		if (retval == J_ST_SUCCESS)
+		for (int i = 0; i < m_CameraCount; i++)
 		{
+			//retval = J_Camera_GetNodeByName(m_hCam[i],sNodeName,&m_hNode);
+			retval = J_Camera_SetValueInt64(m_hCam[i],sNodeName,Value);
 		}
-		else
+	}
+	else
+	{
+		for (int i = 0; i < checkNum; i++)
 		{
-			AfxMessageBox(_T("参数未设置成功!"),MB_ICONINFORMATION);
-			return -1;
+			retval = J_Camera_SetValueInt64(m_hCam[checkCamSign[i]], sNodeName, Value);
 		}
+	}
+	if (retval == J_ST_SUCCESS)
+	{
+	}
+	else
+	{
+		AfxMessageBox(_T("参数未设置成功!"),MB_ICONINFORMATION);
+		return -1;
 	}
 
 	return J_ST_SUCCESS;
@@ -546,7 +574,165 @@ BOOL CSetValue::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	// TODO:  在此添加额外的初始化
+	m_splitBt.SetDropDownMenu(IDR_MENU_CAM_SETUP, 0);
 
+	menu.LoadMenu(IDR_MENU_CAM_SETUP);
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// 异常: OCX 属性页应返回 FALSE
+}
+
+
+void CSetValue::OnCamsetupAllUse()
+{
+	b_splitCamCheck[8]  = !b_splitCamCheck[8];
+	if(b_splitCamCheck[8])
+	{
+		SplitBT_ClickAllUse = 1;
+	}
+	else
+	{
+		SplitBT_ClickAllUse = 0;
+	}
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	OnInitMenu(&menu);
+}
+
+
+void CSetValue::OnCamsetupCam0()
+{
+	b_splitCamCheck[0] = !b_splitCamCheck[0];
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	SplitBT_ClickAllUse = 0;
+
+	OnInitMenu(&menu);
+
+}
+
+
+void CSetValue::OnCamsetupCam1()
+{
+	b_splitCamCheck[1] = !b_splitCamCheck[1];
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	SplitBT_ClickAllUse = 0;
+
+	OnInitMenu(&menu);
+
+}
+
+
+void CSetValue::OnCamsetupCam2()
+{
+	b_splitCamCheck[2] = !b_splitCamCheck[2];
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	SplitBT_ClickAllUse = 0;
+
+	OnInitMenu(&menu);
+
+}
+
+
+void CSetValue::OnCamsetupCam3()
+{
+	b_splitCamCheck[3] = !b_splitCamCheck[3];
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	SplitBT_ClickAllUse = 0;
+
+	OnInitMenu(&menu);
+
+}
+
+
+void CSetValue::OnCamsetupCam4()
+{
+	b_splitCamCheck[4] = !b_splitCamCheck[4];
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	SplitBT_ClickAllUse = 0;
+
+	OnInitMenu(&menu);
+
+}
+
+
+void CSetValue::OnCamsetupCam5()
+{
+	b_splitCamCheck[5] = !b_splitCamCheck[5];
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	SplitBT_ClickAllUse = 0;
+
+	OnInitMenu(&menu);
+
+}
+
+
+void CSetValue::OnCamsetupCam6()
+{
+	b_splitCamCheck[6] = !b_splitCamCheck[6];
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	SplitBT_ClickAllUse = 0;
+
+	OnInitMenu(&menu);
+
+}
+
+
+void CSetValue::OnCamsetupCam7()
+{
+	b_splitCamCheck[7] = !b_splitCamCheck[7];
+	//GetDlgItem(IDC_SPLIT_CAM_SETUP)->SendMessage(WM_INITMENU);
+	SplitBT_ClickAllUse = 0;
+
+	OnInitMenu(&menu);
+
+}
+
+
+void CSetValue::OnInitMenu(CMenu* pMenu)
+{
+	CDialog::OnInitMenu(pMenu);
+	if(SplitBT_ClickAllUse == 1)
+	{
+		pMenu->CheckMenuItem(ID_CAMSETUP_ALLUSE, MF_BYCOMMAND | MF_CHECKED);
+		for(int i = 0; i < m_CameraCount; i++)
+		{
+			b_splitCamCheck[i] = FALSE;
+		}
+	}
+
+	for (int i = 0; i < m_CameraCount; i++)
+	{
+		pMenu->CheckMenuItem(ID_CAMSETUP_CAM0+i, 
+			b_splitCamCheck[i] ? (MF_BYCOMMAND | MF_CHECKED) :  (MF_BYCOMMAND | MF_UNCHECKED));
+	}
+
+	int j = 0;
+	for (int i = 0; i < m_CameraCount; i++)
+	{
+		if(b_splitCamCheck[i])
+		{
+			checkCamSign[j] = i;
+			j++;
+		}
+	}
+	checkNum = j;
+
+	if(checkNum == 0)
+	{
+		pMenu->CheckMenuItem(ID_CAMSETUP_ALLUSE, MF_BYCOMMAND | MF_CHECKED);
+		b_splitCamCheck[8] = TRUE;
+	}
+	else
+	{
+		pMenu->CheckMenuItem(ID_CAMSETUP_ALLUSE, MF_BYCOMMAND | MF_UNCHECKED);
+		b_splitCamCheck[8] = FALSE;
+	}
+
+}
+
+
+void CSetValue::OnClose()
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	HMENU hMenu = menu.GetSafeHmenu();
+	::DestroyMenu(hMenu);
+	CDialog::OnClose();
 }
