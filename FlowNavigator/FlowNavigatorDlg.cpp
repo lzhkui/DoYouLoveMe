@@ -38,7 +38,10 @@ int Total_Frame[MAX_CAMERAS]; //一共所需采集张数
 
 BOOL b_isContinuous = FALSE;  //true:连续模式
 BOOL b_isSingleFrame = FALSE; //true:潮流
-CString m_CurrentProPath;     //保存当前项目路径
+CString m_CurrentProPath;     //保存当前项目路径(包含工况一级目录)
+CString copy_CurProPath;      //保存原始项目路径
+
+CString SubDir[MAX_SUBDIR] = {_T("\\原始数据"), _T("\\图像拼接"), _T("\\流场拼接"), _T("\\配置文件")};
 
 CCriticalSection /*g_cs,*/g_cs1,g_cs2,g_cs3,
 g_cs4,g_cs5,g_cs6,g_cs7;
@@ -388,6 +391,7 @@ BEGIN_MESSAGE_MAP(CFlowNavigatorDlg, CDialog)
 	ON_COMMAND(ID_ImageCalibrate2, &CFlowNavigatorDlg::OnImageCalibrate2)
 
 	ON_MESSAGE(WM_MY_MESSAGE_INIT, OnMyMessegeInit)     //自定义消息 系统打开进度
+	ON_MESSAGE(WM_MESSAGE_INITPATH, OnMessageInitPath)  //自定义消息 建立工况目录
 	ON_COMMAND_RANGE(IDC_CheckBT1, IDC_CheckBT8, OnCheckBtClick)
 END_MESSAGE_MAP()
 
@@ -1374,6 +1378,10 @@ void CFlowNavigatorDlg::StreamCBFunc1(J_tIMAGE_INFO * pAqImageInfo)
 
 	// get the number of lost frames due to a queue under run  
 	J_Image_GetStreamInfo(m_hThread[1], STREAM_INFO_CMD_NUMBER_OF_FRAMES_LOST_QUEUE_UNDERRUN, &iLostFrames, &iSize);
+	J_Image_GetStreamInfo(m_hThread[0], STREAM_INFO_CMD_NUMBER_OF_FRAMES_CORRUPT_ON_DELIEVRY, &iCurruptedFrames, &iSize);
+
+	TRACE("相机1：%d,LostFrames=%d,CurruptedFrames=%d,RecvFrame=%d,iTimeStamp=%llu,iAwaitDelivery=%d\n",Count,iLostFrames,
+		iCurruptedFrames,RecvFrame[1],pAqImageInfo->iTimeStamp,pAqImageInfo->iAwaitDelivery);
 
 	if(CtrLine == 42)
 	{
@@ -1928,7 +1936,8 @@ void CFlowNavigatorDlg::LiveViewWnd(CWnd* pWnd, CheckToShow* checkShow, int sign
 	CRect rect;
 	pWnd->GetClientRect(&rect);
 
-	int Weight      = checkShow->ReturnWeight(sign);
+//	int Weight      = checkShow->ReturnWeight(sign);
+	int Weight      = checkShow->ReturnSerialNumInCheck(sign);
 	int startHeight = checkShow->getStartHeight(rect);
 	int SrcWidth    = checkShow->getWidth(rect);
 	int SrcHeight   = checkShow->getHeight(rect, 2048 , 2560); // 这里不传2560，后面默认参数莫名其妙被改成了2056_Bug_20160517
@@ -2299,11 +2308,11 @@ void CFlowNavigatorDlg::OnSetValues()
 	//SetTimer(1,1000,NULL);
 	if(setDlg == NULL )
 	{
-		setDlg = new CSetValue(NULL, m_CurrentProPath);
+		setDlg = new CSetValue(NULL, copy_CurProPath);
 	}
 	setDlg->m_CameraCount = m_CameraCount;
 
-	setDlg->m_CurrentProPath = m_CurrentProPath;//二次选择项目
+	setDlg->m_CurrentProPath = copy_CurProPath;//二次选择项目
 
 	for (int i = 0; i<m_CameraCount; i++)
 	{
@@ -2728,6 +2737,50 @@ UINT Write2File7(LPVOID param)
 End:
     return 0;
 } 
+
+int Get_Node_From_JAI(CAM_HANDLE hCam, int8_t* sNodeName)
+{
+	int retval;
+	int64_t int64Val;
+	NODE_HANDLE m_hNode;
+
+	retval = J_Camera_GetNodeByName(hCam,sNodeName,&m_hNode);
+	if (retval == J_ST_SUCCESS)
+	{
+		retval = J_Node_GetValueInt64(m_hNode,TRUE,&int64Val);
+		if (retval != J_ST_SUCCESS)
+		{
+			return -1;
+		}
+	}
+	else
+	{
+		return -1;
+	}
+
+	return int64Val;
+}
+
+double Get_Frame_From_JAI(CAM_HANDLE hCam)
+{
+	int retval;
+	double d_val;
+	NODE_HANDLE hNode;
+
+	if(J_ST_SUCCESS == J_Camera_GetNodeByName(hCam,(int8_t *)"AcquisitionFrameRate",&hNode))
+	{
+		if(J_ST_SUCCESS != J_Node_GetValueDouble(hNode,TRUE,&d_val))	
+		{
+			return -1;
+		}
+	}
+	else
+	{
+		return -1;
+	}
+
+	return d_val;
+}
 void CFlowNavigatorDlg::OnContinuous()
 {
 	// TODO: 在此添加命令处理程序代码
@@ -2751,7 +2804,14 @@ void CFlowNavigatorDlg::OnContinuous()
 	{
 		samDlg->m_hCam[i] = m_hCam[i];
 	}
-	samDlg->DoModal();
+	if(samDlg->DoModal() == IDCANCEL)
+	{
+		return;
+	}
+	int d_val = (int)Get_Frame_From_JAI(m_hCam[0]);
+
+	SendMessage(WM_MESSAGE_INITPATH, (WPARAM)d_val);
+
 	b_isContinuous = TRUE;
 // 	Count1=Count2=Count3=Count4=Count5=Count6=Count7=samDlg->Count;
 
@@ -2790,19 +2850,9 @@ void CFlowNavigatorDlg::OnSingleFrame()
 		return;
 	}
 
-	NODE_HANDLE hNode;
-	double d_val;
-	if(J_ST_SUCCESS == J_Camera_GetNodeByName(m_hCam[0],(int8_t *)"AcquisitionFrameRate",&hNode))
-	{
-		if(J_ST_SUCCESS != J_Node_GetValueDouble(hNode,TRUE,&d_val))	
-		{
-			AfxMessageBox(_T("未能正确获取相机帧率参数!"),MB_ICONINFORMATION);
-		}
-	}
-	else
-	{
-		AfxMessageBox(_T("未能正确获取相机帧率参数!"),MB_ICONINFORMATION);
-	}
+	int d_val = (int)Get_Frame_From_JAI(m_hCam[0]);
+
+	SendMessage(WM_MESSAGE_INITPATH, (WPARAM)d_val);
 
 	Space_Frame[0] = Count_Space[0] * (int)d_val;
 
@@ -3039,6 +3089,8 @@ void CFlowNavigatorDlg::OnTest()
 	// TODO: 在此添加命令处理程序代码
 	ShowCheckCamBt(this, Check_ID, TRUE);
 	checkShow->ChangeButtonState(checkBt, MAX_CAMERAS, TRUE);
+	EnableCheckCamBt(checkBt, MAX_CAMERAS, m_CameraCount, FALSE); // 停止图像拼接后，改变checkButton状态_BUG_20160617
+
 	mLink           = FALSE;
 	mAdjust         = FALSE;
 	b_isContinuous  = FALSE;
@@ -3052,8 +3104,6 @@ void CFlowNavigatorDlg::OnOpenproj()
 	// TODO: 在此添加命令处理程序代码
 	CString dstDir = DEFAULT_PATH;
 
-	CString SubDir[MAX_SUBDIR] = {_T("\\原始数据"), _T("\\图像拼接"), _T("\\流场拼接"), _T("\\配置文件")};
-
 	if(IDOK == SelectDir(dstDir,GetSafeHwnd(),FALSE))
 	{
 		if (dstDir == DEFAULT_PATH)
@@ -3066,10 +3116,11 @@ void CFlowNavigatorDlg::OnOpenproj()
 			CreatePathDir(dstDir);
 		}
 		TRACE(_T("project path: %s\n"), dstDir);
-		InitPathDir(dstDir, SubDir, MAX_SUBDIR);
 
+		CreatePathDir(dstDir+_T("\\配置文件"));
 		SetWindowText(dstDir);
 		m_CurrentProPath = dstDir;
+		copy_CurProPath  = dstDir;
 	}
 }
 
@@ -3077,8 +3128,6 @@ void CFlowNavigatorDlg::OnCreateproj()
 {
 	// TODO: 在此添加命令处理程序代码
 	CString dstDir = DEFAULT_PATH;
-
-	CString SubDir[MAX_SUBDIR] = {_T("\\原始数据"), _T("\\图像拼接"), _T("\\流场拼接"), _T("\\配置文件")};
 
 	if(IDOK == SelectDir(dstDir,GetSafeHwnd(), TRUE))
 	{
@@ -3092,10 +3141,12 @@ void CFlowNavigatorDlg::OnCreateproj()
 			CreatePathDir(dstDir);
 		}
 		TRACE(_T("project path: %s\n"), dstDir);
-		InitPathDir(dstDir, SubDir, MAX_SUBDIR);
+
+		CreatePathDir(dstDir+_T("\\配置文件"));
 
 		SetWindowText(dstDir);
 		m_CurrentProPath = dstDir;
+		copy_CurProPath  = dstDir;
 	}
 }
 
@@ -3216,7 +3267,7 @@ void CFlowNavigatorDlg::OnLButtonDown(UINT nFlags, CPoint point)
 			wcstombs(szStr, tempPath, tempPath.GetLength());//Unicode转换为ASCII
 */
 			
-			wcstombs(szStr, m_CurrentProPath, m_CurrentProPath.GetLength());//Unicode转换为ASCII
+			wcstombs(szStr, copy_CurProPath, copy_CurProPath.GetLength());//Unicode转换为ASCII
 			const char * p = szStr;
 			imgClb->Save_RelatedArray_ToDisk(p, CurrentCamSign);
 
@@ -3439,7 +3490,7 @@ void CFlowNavigatorDlg::OnImageCalibrate()
 		CLBdlg2->adjustImage[i] = adjustImage_C[i];
 	}
 	CLBdlg2->imgClb = imgClb;
-	CLBdlg2->CurrentPath = m_CurrentProPath;
+	CLBdlg2->CurrentPath = copy_CurProPath;
 	CLBdlg2->Create(IDD_CLB_CHILD8, this);
 	CLBdlg2->ShowWindow(SW_SHOW);
 	CLBdlg2->UpdateWindow();
@@ -3493,6 +3544,22 @@ LRESULT CFlowNavigatorDlg::OnMyMessegeInit(WPARAM wParam, LPARAM lParam)
 	default:
 		;
 	}
+	return 0;
+}
+
+
+LRESULT CFlowNavigatorDlg::OnMessageInitPath(WPARAM wParam, LPARAM lParam)
+{
+	int Frame = (int)wParam;
+
+	CTime   time = CTime::GetCurrentTime();
+	CString Time = time.Format(_T("%Y%m%d_%H%M%S"));
+
+	//m_CurrentProPath =copy_CurProPath + _T("\\FlowNavigator") + Time;
+	m_CurrentProPath.Format(_T("%s\\%s_Frame%d"), copy_CurProPath, Time, Frame);
+	BOOL result =  CreatePathDir(m_CurrentProPath);
+	InitPathDir(m_CurrentProPath, SubDir, MAX_SUBDIR);
+
 	return 0;
 }
 

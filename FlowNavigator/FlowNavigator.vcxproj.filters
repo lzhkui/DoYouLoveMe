@@ -102,6 +102,9 @@
     <ClCompile Include="MyStatusBar.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CamControl.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ErrorCodeList.h">
@@ -201,6 +204,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="MyStatusBar.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CamControl.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

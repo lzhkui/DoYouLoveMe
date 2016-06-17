@@ -136,7 +136,7 @@ void CSetValue::SetRangeMM(void)
 			}
 			else
 			{
-				m_CurFrame = d_val;
+				m_CurFrame = (int)d_val;
 			}
 		}
 		else

@@ -223,6 +223,7 @@
     <ClCompile Include="AdjustImage.cpp" />
     <ClCompile Include="AdjustThreadFunc.cpp" />
     <ClCompile Include="BuildDir.cpp" />
+    <ClCompile Include="CamControl.cpp" />
     <ClCompile Include="CheckToShow.cpp" />
     <ClCompile Include="CSetSampleDlg.cpp" />
     <ClCompile Include="ErrorCodeList.cpp" />
@@ -256,6 +257,7 @@
     <ClCompile Include="ZoomImage.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CamControl.h" />
     <ClInclude Include="ErrorCodeList.h" />
     <ClInclude Include="AdjustImage.h" />
     <ClInclude Include="AdjustThreadFunc.h" />

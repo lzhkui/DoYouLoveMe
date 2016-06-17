@@ -3,15 +3,12 @@
 #include <Jai_Factory.h>
 #include "afxcmn.h"  //¿Ø¼þCSliderCtrl
 #include "BuildDir.h"
-#include "afxwin.h"
 using namespace BuildDir;
+#include "afxwin.h"
+
+#include "KGlobalDefine.h"
 
 // SetValue ¶Ô»°¿ò
-
-#define MAX_CAMERAS 8
-#define NODE_NAME_EXPOSURE      (int8_t*)"ExposureTimeRaw"
-#define NODE_NAME_GAIN          (int8_t*)"GainRaw"
-
 
 #define Min_EXPOSURE 10
 #define Max_EXPOSURE 44730

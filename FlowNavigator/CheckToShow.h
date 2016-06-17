@@ -88,4 +88,6 @@ public:
 	//Ëõ·Å¿ØÖÆ
 	void GenerateShowStartAndSize(CPoint PointStart, CPoint PointEnd);
 
+	int ReturnSerialNumInCheck(int sign);
+
 };

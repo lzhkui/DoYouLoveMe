@@ -43,11 +43,13 @@
 
 #define MAX_IMG_COUNT 100
 
-#define WM_MY_MESSAGE_INIT (WM_USER + 100)   //打开系统进度
+#define WM_MY_MESSAGE_INIT  (WM_USER + 100)   //打开系统进度
+#define WM_MESSAGE_INITPATH (WM_USER + 101)   //采集时在项目路径下建立工况目录
+
 #define SYSTEM_WILL_OPEN     0               //系统即将打开
 #define SYSTEM_OPEN_ING      1               //系统正在打开
 #define SYSTEM_IS_OPEN       2               //系统已就绪
-#define SYSTEM_NOT_OPEN      3             //系统未打开
+#define SYSTEM_NOT_OPEN      3               //系统未打开
 #define COLLECTION_NOT_START 4               //采集状态 重置
 #define CAM_IS_CLOSED        5               //已打开相机编号 重置
 
@@ -250,5 +252,6 @@ public:
 	afx_msg void OnImageCalibrate2();
 
 	afx_msg LRESULT OnMyMessegeInit(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnMessageInitPath(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnCheckBtClick(UINT uID);
 };

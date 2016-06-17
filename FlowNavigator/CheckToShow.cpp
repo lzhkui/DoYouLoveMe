@@ -294,3 +294,17 @@ int CheckToShow::getLBDownCheckCamSign()
 {
 	return this->LBDownCheckCamSign;
 }
+
+int CheckToShow::ReturnSerialNumInCheck(int sign)
+{
+    int position = -1;
+	for (int i = 0; i < mNum; i++)
+	{
+		if(sign == CheckCamSign[i])
+		{
+			position = i;
+		}
+	}
+
+	return position;
+}

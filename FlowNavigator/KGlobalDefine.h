@@ -12,6 +12,9 @@
 #define CAMERA_PIXEL_COL (int)2560
 
 #define MAX_CAMERAS 8
+#define NODE_NAME_EXPOSURE      (int8_t*)"ExposureTimeRaw"
+#define NODE_NAME_GAIN          (int8_t*)"GainRaw"
+
 #define ARROW_LEN   20  //最大矢量箭头长度 
 
 #define DEFAULT_SAVE_RELATEDARRAY_PATH     _T("C:\\")
