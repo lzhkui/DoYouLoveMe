@@ -172,7 +172,7 @@ BEGIN
     CTEXT           "x终点：",IDC_STATIC,58,57,57,8
     CTEXT           "y起点：",IDC_STATIC,58,79,57,8
     CTEXT           "y终点：",IDC_STATIC,58,100,57,8
-    CTEXT           "步长：",IDC_STATIC,58,121,57,8
+    CTEXT           "网格间距：",IDC_STATIC,58,121,57,8
     CTEXT           "查询框行(列)：",IDC_STATIC,58,142,57,8
     GROUPBOX        "",IDC_STATIC,24,18,276,135
     PUSHBUTTON      "应用默认值",IDC_DEFAULTARG_PIV,228,36,50,14
