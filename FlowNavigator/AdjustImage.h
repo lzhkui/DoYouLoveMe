@@ -110,5 +110,6 @@ public:
 	float getLeftSplitLine();
 
 	int   getSplitLinePixel();
+	int   getSplitLinePixel_PositionOnFirst(); // 当拼接后位于第一位置的相机 不是cam0时
 	int   getLeftSplitLinePixel();
 };

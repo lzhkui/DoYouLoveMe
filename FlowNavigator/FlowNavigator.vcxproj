@@ -90,10 +90,10 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\scui\Desktop\test_DLL;C:\Program Files\MATLAB\R2014b\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\scui\Desktop\test_DLL;C:\Program Files\MATLAB\R2014b\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\scui\Desktop\test_DLL;C:\Program Files\MATLAB\R2014b\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\MATLAB\R2014b\extern\lib\win64\microsoft;C:\Users\scui\Desktop\test_DLL;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\hawksoft\Desktop\test_DLL;C:\Users\scui\Desktop\test_DLL;C:\Program Files\MATLAB\R2014b\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\hawksoft\Desktop\test_DLL;C:\Users\scui\Desktop\test_DLL;C:\Program Files\MATLAB\R2014b\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\hawksoft\Desktop\test_DLL;C:\Users\scui\Desktop\test_DLL;C:\Program Files\MATLAB\R2014b\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\hawksoft\Desktop\test_DLL;C:\Program Files\MATLAB\R2014b\extern\lib\win64\microsoft;C:\Users\scui\Desktop\test_DLL;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -147,7 +147,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>Jai_Factory.lib;hFig.lib;mclmcrrt.lib;libmx.lib;libmat.lib;libeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Users\scui\Desktop\test_DLL;$(JAI_SDK_LIB_64);C:\Users\Hawksoft\Desktop\HSPIV\HSPIV64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\hawksoft\Desktop\test_DLL;C:\Users\scui\Desktop\test_DLL;$(JAI_SDK_LIB_64);C:\Users\Hawksoft\Desktop\HSPIV\HSPIV64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -210,7 +210,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>Jai_Factory.lib;mclmcrrt.lib;libmx.lib;libmat.lib;libeng.lib;hFig.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Users\scui\Desktop\test_DLL;$(JAI_SDK_LIB_64);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\hawksoft\Desktop\test_DLL;C:\Users\scui\Desktop\test_DLL;$(JAI_SDK_LIB_64);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>

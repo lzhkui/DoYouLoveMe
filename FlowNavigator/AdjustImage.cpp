@@ -384,6 +384,11 @@ int AdjustImage::getSplitLinePixel()
 	return (int)((this->splitLine - this->m_stRange.xMin) / this->L[0]);
 }
 
+int AdjustImage::getSplitLinePixel_PositionOnFirst()
+{
+	return (int)((this->splitLine - this->leftSplitLine) / this->L[0]);
+}
+
 int AdjustImage::getLeftSplitLinePixel()
 {
 	return (int)((this->leftSplitLine - this->m_stRange.xMin) / this->L[0]);

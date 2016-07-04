@@ -1659,9 +1659,9 @@ void CFlowNavigatorDlg::StreamCBFunc4(J_tIMAGE_INFO * pAqImageInfo)
 	else if(CtrLine == 81)
 	{
 		if(DoubleClk == DOUBLECLK_IN){
-			DrawTextByCamSign(this, showView, RecvFrame[5], iLostFrames, rect.Width() / 8 * 5, showStartHeight);
+			DrawTextByCamSign(this, showView, RecvFrame[CameraSign], iLostFrames, rect.Width() / 8 * CameraSign, showStartHeight);
 		}else if(DoubleClk == DOUBLECLK_OUT){
-			DrawTextLocate(checkShow,5,this,showView,RecvFrame[5],iLostFrames);
+			DrawTextLocate(checkShow,CameraSign,this,showView,RecvFrame[CameraSign],iLostFrames);
 		}	}
 
 End:

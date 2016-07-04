@@ -6,7 +6,7 @@
 //#define MYTEST_MAX_U_V
 //#define MYTEST_IMAGECALIBRATION 
 
-//#define MYTEST_LOAD_MATLAB_DLL  // 加载matlab库,图像标定需要，调试注释掉可加快程序启动
+#define MYTEST_LOAD_MATLAB_DLL  // 加载matlab库,图像标定需要，调试注释掉可加快程序启动
 
 #define CAMERA_PIXEL_ROW (int)2048
 #define CAMERA_PIXEL_COL (int)2560

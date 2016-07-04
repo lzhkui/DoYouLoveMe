@@ -237,7 +237,7 @@ void ShowView::setStartPosition(AdjustImage* adjustImage)
 	st_StartPosition startPosition = adjustImage->getStartPosition(st_base);
 	int diff = adjustImage->getLeftSplitLinePixel() * st_base.baseWidth / adjustImage->getXClientRange();
 	this->Xstart = startPosition.xStart + diff;
-	this->Ystart = 0/*startPosition.yStart*/; //显示位置_20160605
+	this->Ystart = /*0*/startPosition.yStart; //显示位置_20160605
 }
 void ShowView::setStartPosition(CheckToShow* checkShow, int sign)
 {
@@ -286,14 +286,14 @@ void ShowView::LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustIm
 	setWidth(xRange, sign);
 	setHeight(yRange, sign);
 
-	int nWidth  = (adjustImage->getSplitLinePixel() - adjustImage->getLeftSplitLinePixel()) * (float)st_base.baseWidth / adjustImage->getXClientRange() + 0.5;
+	int nWidth  = (adjustImage->getSplitLinePixel() - adjustImage->getLeftSplitLinePixel()) * (float)st_base.baseWidth / adjustImage->getXClientRange() /*+ 0.5*/;
 	int nHeight = st_base.baseHeight;
 
 	int xSrc    = adjustImage->getLeftSplitLinePixel();
 	int ySrc    = pBmpInfo[sign]->bmiHeader.biHeight;
 	int nSrcWidth  = adjustImage->getSplitLinePixel() - adjustImage->getLeftSplitLinePixel();
 	int nSrcHeight = pBmpInfo[sign]->bmiHeader.biHeight;
-
+/*
 	//如果选中的只有一台相机，下面的判断 还得增加对FIRSTCHECK时nSrcWidth的情况 最好是把adjustImage->getSplitLinePixel() 抽象到AdjustImage里面用函数判断
 	if(originSign == FIRSTCHECK)
 	{
@@ -304,7 +304,7 @@ void ShowView::LiveViewByPhysical(unsigned char* targetImage, int sign, AdjustIm
 	{
 		nSrcWidth = adjustImage->getXRange() - adjustImage->getLeftSplitLinePixel();
 	}
-
+*/
 	LiveView_CWJ(targetImage, pBmpInfo[sign], this->Xstart, this->Ystart, 
 		nWidth, nHeight, xSrc, ySrc, nSrcWidth, nSrcHeight,getStretchMode());
 }
@@ -701,7 +701,7 @@ void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign, int 
 	endX--;
 
 	TRACE(_T("DrawArrowPoisitionBySign: startX = %d, endX = %d\n"), startX, endX);
-
+	/*
 	if(originSign == FIRSTCHECK)
 	{
 		startX = 0;
@@ -710,6 +710,7 @@ void ShowView::DrawArrowPoisitionBySign(AdjustImage* adjustImage, int sign, int 
 	{
 		endX = sizeY;
 	}
+	*/
 	CPoint startPoint;
 	CPoint endPoint;
 
