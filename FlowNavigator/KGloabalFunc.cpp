@@ -64,8 +64,10 @@ float* Matrix_T(float* pBuff, int nRow, int nCol)
 	}
 
 	return copy_pBuff;
-
 }
+
+// template <typename T>
+// T* Matrix_T(T* pBuff, int nRow, int nCol)
 
 //ц╟ещеепР
 void BubbleSortArray(int *RangeArray, unsigned int ArraySize)

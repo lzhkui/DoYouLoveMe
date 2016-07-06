@@ -5,7 +5,6 @@
 #include "FlowNavigator.h"
 #include "ImageCalibration.h"
 
-
 // ImageCalibration
 
 ImageCalibration::ImageCalibration()
@@ -183,7 +182,32 @@ float* ImageCalibration::GenerateRelated(CalibrationPoint* CB_Point, int sign)
 			e[i] = CB_Point[sn].y_i;
 		}
 	}
+#ifdef MYTEST_LOAD_MATLAB_DLL
+	GenerateRelated_Use_Matlab_By_Save2File(D, e, sign, ClbNum);
+#endif
+#ifndef MYTEST_LOAD_MATLAB_DLL
+	double* D_T = Matrix_T<double>((double*)D, 2*ClbNum, 11);
 
+	emxArray_real_T* emx_D = emxCreateWrapper_real_T(D_T,2*ClbNum ,11);
+	emxArray_real_T* emx_e = emxCreateWrapper_real_T((double*)e, 2*ClbNum, 1);
+	emxArray_real_T* L     = emxCreate_real_T(11, 1);
+
+	y(emx_D, emx_e, L);
+
+	memcpy(related[sign], L->data,11*sizeof(float));
+
+#endif
+	free(D);
+	D = NULL;
+
+	free(e);
+	e = NULL;
+
+	return this->related[sign];
+}
+
+void ImageCalibration::GenerateRelated_Use_Matlab_By_Save2File(float* D, float* e, int CamSign, int ClbNum)
+{
 	FILE* fp;
 	char defaultPath[MAX_PATH] = DEFAULT_C_USE_MATLAB_TEMPVAR_PATH;
 	char tempPath[MAX_PATH]    = {0};
@@ -220,19 +244,12 @@ float* ImageCalibration::GenerateRelated(CalibrationPoint* CB_Point, int sign)
 		fscanf(fp, "%f", &(result_[k]));
 		TRACE(_T("%f "), result_[k]);
 	}
-	memcpy(related[sign], result_,11*sizeof(float));
+	memcpy(related[CamSign], result_,11*sizeof(float));
 	fclose(fp);
-
-	free(D);
-	D = NULL;
-
-	free(e);
-	e = NULL;
 
 	free(result_);
 	result_ = NULL;
 
-	return this->related[sign];
 }
 
 void ImageCalibration::GenerateRelatedArray(AdjustImage* adjustImage, CheckToShow* checkShow, int sign)
@@ -340,54 +357,41 @@ float* ImageCalibration::GenerateRelated(CheckToShow* checkShow, CalibrationPoin
 			e[i] = nRow;
 		}
 	}
+#ifdef MYTEST_LOAD_MATLAB_DLL
+	GenerateRelated_Use_Matlab_By_Save2File(D, e, sign, ClbNum);
+#endif
+#ifndef MYTEST_LOAD_MATLAB_DLL
 
-	FILE* fp;
-	char defaultPath[MAX_PATH] = DEFAULT_C_USE_MATLAB_TEMPVAR_PATH;
-	char tempPath[MAX_PATH]    = {0};
+	double* D_D = SwitchType_From_T_to_Double<float>(D, 2*ClbNum*11);          //类型转换
+	double* D_T = Matrix_T<double>(D_D, 2*ClbNum, 11);                         //转置
 
-	sprintf(tempPath, "%s\\D.txt", defaultPath); // 也是忽略'\0'的
-	fp = fopen(tempPath,"w");
-	for(int i = 0; i < 2*ClbNum; i++)
+	emxArray_real_T* emx_D = emxCreateWrapper_real_T(D_T,2*ClbNum ,11);        
+
+	double* D_e = SwitchType_From_T_to_Double<float>(e, 2*ClbNum);
+	emxArray_real_T* emx_e = emxCreateWrapper_real_T(D_e, 2*ClbNum, 1);
+	emxArray_real_T* L     = emxCreate_real_T(11, 1);
+
+	y(emx_D, emx_e, L);
+
+	for (int i = 0; i < 11; i++)
 	{
-		for(int j = 0; j < 11; j++)
-		{
-			fprintf(fp, "%f ", D[i*11+j]);
-		}
-		fprintf(fp,"\n");
+		*(related[sign] + i) = (float)(*(L->data + i));
 	}
-	fclose(fp);
 
-	sprintf(tempPath, "%s\\e.txt", defaultPath);
-	fp = fopen(tempPath, "w");
+	free(D_D);
+	D_D = NULL;
+	
+	free(D_e);
+	D_e = NULL;
 
-	for(int j = 0; j < 2*ClbNum; j++)
-	{
-		fprintf(fp, "%f\n", e[j]);
-	}
-	fclose(fp);
-
-	hFig();
-
-	sprintf(tempPath, "%s\\L.txt", defaultPath);
-	fp = fopen(tempPath, "r");
-	float* result_ = (float*)malloc(11*sizeof(float));
-
-	for(int k = 0; k < 11; k++)
-	{
-		fscanf(fp, "%f", &(result_[k]));
-		TRACE(_T("%f "), result_[k]);
-	}
-	memcpy(related[sign], result_,11*sizeof(float));
-	fclose(fp);
-
+	free(D_T);
+	D_T = NULL;
+#endif
 	free(D);
 	D = NULL;
 
 	free(e);
 	e = NULL;
-
-	free(result_);
-	result_ = NULL;
 
 	return this->related[sign];
 }

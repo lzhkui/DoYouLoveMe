@@ -131,7 +131,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(JAI_SDK_INCLUDE);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./use_matlab/solve_equation;$(JAI_SDK_INCLUDE);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -253,6 +253,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="test.cpp" />
+    <ClCompile Include="use_matlab\solve_equation\rtGetInf.cpp" />
+    <ClCompile Include="use_matlab\solve_equation\rtGetNaN.cpp" />
+    <ClCompile Include="use_matlab\solve_equation\rt_nonfinite.cpp" />
+    <ClCompile Include="use_matlab\solve_equation\y.cpp" />
+    <ClCompile Include="use_matlab\solve_equation\y_emxAPI.cpp" />
+    <ClCompile Include="use_matlab\solve_equation\y_emxutil.cpp" />
     <ClCompile Include="WaitLoading.cpp" />
     <ClCompile Include="ZoomImage.cpp" />
   </ItemGroup>
@@ -289,6 +295,14 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="test.h" />
+    <ClInclude Include="use_matlab\solve_equation\rtGetInf.h" />
+    <ClInclude Include="use_matlab\solve_equation\rtGetNaN.h" />
+    <ClInclude Include="use_matlab\solve_equation\rtwtypes.h" />
+    <ClInclude Include="use_matlab\solve_equation\rt_nonfinite.h" />
+    <ClInclude Include="use_matlab\solve_equation\y.h" />
+    <ClInclude Include="use_matlab\solve_equation\y_emxAPI.h" />
+    <ClInclude Include="use_matlab\solve_equation\y_emxutil.h" />
+    <ClInclude Include="use_matlab\solve_equation\y_types.h" />
     <ClInclude Include="WaitLoading.h" />
     <ClInclude Include="ZoomImage.h" />
   </ItemGroup>

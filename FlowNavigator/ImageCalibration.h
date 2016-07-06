@@ -5,6 +5,17 @@
 #include "hFig.h"
 #include "KGloabalFunc.h"
 
+//嵌入matlab生成c/c++代码
+#ifndef MYTEST_LOAD_MATLAB_DLL
+
+#include "y.h"
+#include "y_types.h"
+#include "rtwtypes.h"
+#include "y_emxAPI.h"
+
+#endif
+
+
 // ImageCalibration
 
 #define MAX_CALIBRATION 8
@@ -41,6 +52,8 @@ public:
 	float* GenerateRelated(CalibrationPoint* CB_Point, int sign = 0);
 
 	void   GenerateRelatedArray(AdjustImage* adjustImage, CheckToShow* checkShow, int sign = 0);
+
+	void GenerateRelated_Use_Matlab_By_Save2File(float* D, float* e, int CamSign, int ClbNum);
 
 	//下面的算法更合适，精确
 	float* GenerateRelated_(CheckToShow* checkShow, int sign = 0);
